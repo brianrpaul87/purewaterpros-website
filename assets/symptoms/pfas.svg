@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="900" height="560" viewBox="0 0 900 560">
+  <defs><filter id="s"><feDropShadow dx="0" dy="8" stdDeviation="10" flood-opacity=".25"/></filter></defs>
+  <rect width="900" height="560" fill="#f7f9fc"/>
+  <rect x="36" y="36" width="828" height="488" rx="12" fill="#fff" stroke="#dfe7f1"/>
+  <g filter="url(#s)">
+    <rect x="160" y="360" width="580" height="100" rx="18" fill="#eaf1f7" stroke="#cfdbe8"/>
+    <rect x="410" y="270" width="80" height="80" rx="12" fill="#eaf1f7" stroke="#cfdbe8"/>
+    <path d="M450 200c-80 0-120 27-140 60h38c20-23 54-36 102-36s82 13 102 36h38c-20-33-60-60-140-60z" fill="#eaf1f7" stroke="#cfdbe8"/>
+    <g opacity=".95" fill="#6f9bad">
+      <rect x="200" y="380" width="500" height="12" rx="6"/>
+      <rect x="260" y="400" width="140" height="10" rx="5"/>
+      <rect x="520" y="400" width="140" height="10" rx="5"/>
+      <circle cx="450" cy="300" r="9"/>
+      <rect x="430" y="220" width="40" height="10" rx="5"/>
+    </g>
+  </g>
+  <text x="450" y="86" font-family="Inter,Arial" font-weight="800" font-size="26" text-anchor="middle" fill="#0b1b2b">PFAS (“Forever Chemicals”)</text>
+  <text x="450" y="116" font-family="Inter,Arial" font-size="16" text-anchor="middle" fill="#4a6078">Emerging contaminants; at-the-tap focus</text>
+</svg>

@@ -1,0 +1,5 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='640' height='220' viewBox='0 0 640 220'>
+<rect width='640' height='220' fill='#0b1b2b'/>
+<rect x='10' y='10' width='620' height='200' rx='16' ry='16' fill='#123049' stroke='#1c6ea4' stroke-width='2'/>
+<text x='320.0' y='110.0' font-size='28' font-family='Inter, Arial' fill='#e9f3ff' text-anchor='middle'>Your LOGO (upload /assets/logo.png)</text>
+</svg>

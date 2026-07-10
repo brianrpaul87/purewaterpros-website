@@ -1,0 +1,10 @@
+{
+  "note": "This build hotlinks Excalibur product images so they appear instantly without uploading local files. Replace with local copies later if you prefer.",
+  "hotlinks": {
+    "/assets/equipment/ro.jpg": "https://residential.excaliburwater.com/wp-content/uploads/2022/10/lbl-premium-reverse-osmosis-system-1024w-spgy-600x600.jpg",
+    "/assets/equipment/uv.jpg": "https://residential.excaliburwater.com/wp-content/uploads/2022/10/prod-premium-ultravioilet_system-mini-rack-1024w-spgy-600x600.jpg",
+    "/assets/equipment/iron.jpg": "https://residential.excaliburwater.com/wp-content/uploads/2022/10/lbl-superior-zentec-hybrid-capsulate-chemical-free-filter-1024w-spgy-600x600.jpg",
+    "/assets/equipment/iron-alt.jpg": "https://residential.excaliburwater.com/wp-content/uploads/2022/10/lbl-premium-zentec-hybrid-capsulate-enhanced-ozone-chemical-free-filter-1024w-spgy2-600x600.png",
+    "/assets/equipment/softener.jpg": "https://residential.excaliburwater.com/wp-content/uploads/2022/10/prod-lbl-premium-series-water-softener-1024w-spgy-600x600.jpg"
+  }
+}

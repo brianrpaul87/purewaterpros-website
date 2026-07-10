@@ -1,0 +1,59 @@
+<style>
+  /* Minimal affordances for Softener Facts accordions */
+  details.faq > summary {
+    cursor: pointer;
+    position: relative;
+    padding-right: 28px; /* room for chevron */
+    outline: none;
+    transition: color .15s ease;
+  }
+  details.faq > summary:hover { text-decoration: underline; }
+  details.faq > summary::marker,
+  details.faq > summary::-webkit-details-marker { display: none; }
+  details.faq > summary::after {
+    content: "▸";
+    position: absolute;
+    right: 6px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: .6;
+    transition: transform .15s ease, opacity .15s ease;
+  }
+  details.faq[open] > summary::after {
+    transform: translateY(-50%) rotate(90deg);
+    opacity: .85;
+  }
+  /* Keyboard focus */
+  details.faq > summary:focus-visible {
+    outline: 2px solid #38bdf8;
+    outline-offset: 2px;
+    border-radius: 6px;
+  }
+  /* Content spacing (kept subtle) */
+  details.faq > *:not(summary) { margin-top: 8px; }
+<style>
+  
+
+
+<style>
+  
+
+
+<style>
+  /* Definitive UX fix: ensure hand cursor and disable text selection on summary */
+  details > summary,
+  details > summary * {
+    cursor: pointer !important;
+    -webkit-user-select: none !important;
+    user-select: none !important;
+  }
+  details > summary {
+    padding: 8px 4px;
+    border-radius: 4px;
+    transition: color .15s ease;
+  }
+  details > summary:hover { color: #0f172a; text-decoration: underline; }
+  details[open] > summary { font-weight: 600; }
+  details > summary:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; }
+  details > summary::after { content: "▸"; float: right; opacity: .65; transition: transform .18s ease; }
+  details[open] > summary::after { transform: rotate(90deg); opacity: .9; }

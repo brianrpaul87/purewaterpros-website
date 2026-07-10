@@ -1,0 +1,30 @@
+/* Universal FAQ behavior (shared across site) */
+details.faq > summary,
+section .faq > summary,
+details > summary {
+  cursor: pointer !important;
+  -webkit-user-select: none !important;
+  user-select: none !important;
+  position: relative;
+  padding-right: 28px;
+}
+details > summary::marker,
+details > summary::-webkit-details-marker { display: none !important; }
+details > summary::after {
+  content: "▸";
+  position: absolute;
+  right: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  opacity: .65;
+  transition: transform .18s ease, opacity .18s ease;
+}
+details[open] > summary::after { transform: translateY(-50%) rotate(90deg); opacity: .9; }
+/* Keep text readable on hover */
+details > summary:hover { text-decoration: underline; color: inherit !important; }
+/* Focus ring for keyboard users */
+details > summary:focus-visible { outline: 2px solid #38bdf8; outline-offset: 2px; border-radius: 6px; }
+/* Slight emphasis when open */
+details[open] > summary { font-weight: 600; }
+/* Spacing above the answer */
+details.faq > *:not(summary) { margin-top: 8px; }

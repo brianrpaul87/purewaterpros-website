@@ -1,0 +1,5 @@
+<svg xmlns='http://www.w3.org/2000/svg' width='800' height='500' viewBox='0 0 800 500'>
+<rect width='800' height='500' fill='#0b1b2b'/>
+<rect x='10' y='10' width='780' height='480' rx='16' ry='16' fill='#123049' stroke='#1c6ea4' stroke-width='2'/>
+<text x='400.0' y='250.0' font-size='28' font-family='Inter, Arial' fill='#e9f3ff' text-anchor='middle'>SOFTENER placeholder</text>
+</svg>

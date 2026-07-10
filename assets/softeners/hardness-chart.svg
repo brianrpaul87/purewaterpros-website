@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 560" role="img" aria-labelledby="title desc">
+  <title id="title">Water Hardness Chart</title>
+  <desc id="desc">Classification bands for water hardness with ppm as CaCO₃ and grains per gallon.</desc>
+  <defs>
+    <style>
+      .bg { fill: #ffffff; }
+      .frame { fill: #0f172a; opacity: .06; }
+      .band text { font: 600 22px/1.2 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #0f172a; }
+      .hdr { font: 700 34px/1.2 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #0f172a; }
+      .sub { font: 500 18px/1.4 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #334155; }
+      .axis { font: 500 18px/1.2 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #334155; }
+      .range { font: 600 20px/1.2 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #0f172a; }
+      .note { font: 500 16px/1.2 Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial; fill: #475569; }
+      .pill { rx: 18; ry: 18; }
+    </style>
+    <linearGradient id="gsoft" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#e0f2fe"/>
+      <stop offset="1" stop-color="#bae6fd"/>
+    </linearGradient>
+    <linearGradient id="gmod" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#d1fae5"/>
+      <stop offset="1" stop-color="#a7f3d0"/>
+    </linearGradient>
+    <linearGradient id="ghard" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fee2e2"/>
+      <stop offset="1" stop-color="#fecaca"/>
+    </linearGradient>
+    <linearGradient id="gvhard" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#fde68a"/>
+      <stop offset="1" stop-color="#fcd34d"/>
+    </linearGradient>
+  </defs>
+
+  <rect class="bg" x="0" y="0" width="1200" height="560"/>
+  <rect class="frame" x="24" y="24" width="1152" height="512" rx="24" ry="24"/>
+
+  <text class="hdr" x="48" y="78">Water Hardness Chart</text>
+  <text class="sub" x="48" y="110">Classified by total hardness (ppm as CaCO₃) with grains-per-gallon (gpg) reference</text>
+
+  <!-- Bands -->
+  <g class="band">
+    <!-- Soft -->
+    <rect class="pill" x="48" y="150" width="108" height="50" fill="#bae6fd"/>
+    <text x="60" y="183">Soft</text>
+    <rect x="180" y="142" width="960" height="66" fill="url(#gsoft)" rx="14" ry="14"/>
+    <text class="range" x="200" y="184">0 – 60 ppm</text>
+    <text class="axis" x="420" y="184">(≈ 0 – 3.5 gpg)</text>
+  </g>
+
+  <g class="band">
+    <!-- Moderately hard -->
+    <rect class="pill" x="48" y="240" width="220" height="50" fill="#a7f3d0"/>
+    <text x="60" y="273">Moderately hard</text>
+    <rect x="280" y="232" width="860" height="66" fill="url(#gmod)" rx="14" ry="14"/>
+    <text class="range" x="300" y="274">61 – 120 ppm</text>
+    <text class="axis" x="560" y="274">(≈ 3.6 – 7.0 gpg)</text>
+  </g>
+
+  <g class="band">
+    <!-- Hard -->
+    <rect class="pill" x="48" y="330" width="120" height="50" fill="#fecaca"/>
+    <text x="60" y="363">Hard</text>
+    <rect x="180" y="322" width="960" height="66" fill="url(#ghard)" rx="14" ry="14"/>
+    <text class="range" x="200" y="364">121 – 180 ppm</text>
+    <text class="axis" x="480" y="364">(≈ 7.1 – 10.5 gpg)</text>
+  </g>
+
+  <g class="band">
+    <!-- Very hard -->
+    <rect class="pill" x="48" y="420" width="160" height="50" fill="#fcd34d"/>
+    <text x="60" y="453">Very hard</text>
+    <rect x="220" y="412" width="920" height="66" fill="url(#gvhard)" rx="14" ry="14"/>
+    <text class="range" x="240" y="454">≥ 181 ppm</text>
+    <text class="axis" x="440" y="454">(≥ 10.6 gpg)</text>
+  </g>
+
+  <text class="note" x="48" y="510">Note: ppm values are mg/L as CaCO₃. Conversions use 1 gpg ≈ 17.1 ppm.</text>
+</svg>
