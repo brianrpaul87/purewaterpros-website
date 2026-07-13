@@ -1,14 +1,41 @@
+Options -Indexes
+DirectoryIndex index.html
+
 RewriteEngine On
 
-# During pre-launch, keep public traffic on the current landing page.
-# Temporary redirects make this easy to remove when the full site launches.
-RewriteCond %{REQUEST_URI} !^/$
-RewriteCond %{REQUEST_URI} !^/index\.html$
-RewriteCond %{REQUEST_URI} !^/contact\.php$
-RewriteCond %{REQUEST_URI} !^/thank-you\.html$
-RewriteCond %{REQUEST_URI} !^/assets/
-RewriteCond %{REQUEST_URI} !^/images/
-RewriteCond %{REQUEST_URI} !^/favicon\.ico$
-RewriteCond %{REQUEST_URI} !^/robots\.txt$
-RewriteCond %{REQUEST_URI} !^/sitemap\.xml$
-RewriteRule ^ / [R=302,L]
+# Exclude the Where They Rest addon domain from Pure Water Pros redirects.
+RewriteCond %{HTTP_HOST} ^(?:www\.)?wheretheyrest\.ca$ [NC]
+RewriteRule ^ - [L]
+
+# Canonical public address: force HTTPS and the preferred www hostname in one hop.
+RewriteCond %{HTTPS} !=on [OR]
+RewriteCond %{HTTP_HOST} !^www\.purewaterpros\.ca$ [NC]
+RewriteRule ^ https://www.purewaterpros.ca%{REQUEST_URI} [R=301,L]
+
+# Do not expose /index.html as a second homepage URL.
+RewriteCond %{THE_REQUEST} \s/+index\.html(?:[\s?]) [NC]
+RewriteRule ^index\.html$ https://www.purewaterpros.ca/ [R=301,L]
+
+# Retire old/unknown HTML pages while allowing the current BC website pages.
+RewriteCond %{REQUEST_URI} !^/(?:thank-you|water-filtration-victoria|water-softeners-victoria|reverse-osmosis-victoria|uv-water-treatment-victoria|iron-sulfur-water-treatment-victoria|chemical-injection-water-treatment-victoria|low-yield-well-storage-victoria|water-treatment-service-victoria|service-areas|water-treatment-langford-west-shore|privacy-policy)\.html$ [NC]
+RewriteRule ^.+\.html$ https://www.purewaterpros.ca/ [R=301,L]
+
+<IfModule mod_deflate.c>
+  AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json application/xml image/svg+xml
+</IfModule>
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpeg "access plus 1 year"
+  ExpiresByType image/png "access plus 1 year"
+  ExpiresByType image/webp "access plus 1 year"
+  ExpiresByType image/svg+xml "access plus 1 year"
+  ExpiresByType text/css "access plus 7 days"
+  ExpiresByType application/javascript "access plus 7 days"
+  ExpiresByType text/html "access plus 1 hour"
+</IfModule>
+
+<IfModule mod_headers.c>
+  Header always set X-Content-Type-Options "nosniff"
+  Header always set Referrer-Policy "strict-origin-when-cross-origin"
+</IfModule>
