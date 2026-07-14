@@ -15,35 +15,127 @@
   const year = document.getElementById("year");
 
   if (year) year.textContent = String(new Date().getFullYear());
+  if (!form || !resultPanel) return;
+
+  const compactPreview =
+    new URLSearchParams(window.location.search).get("preview") === "compact";
 
   function addHomepageCompressionStyles() {
     const style = document.createElement("style");
     style.textContent = `
+      .preview-badge {
+        position: fixed;
+        right: 16px;
+        bottom: 16px;
+        z-index: 1000;
+        padding: 9px 13px;
+        border-radius: 999px;
+        background: #08243b;
+        color: #fff;
+        font: 700 13px/1.2 Manrope, sans-serif;
+        box-shadow: 0 10px 26px rgba(8, 36, 59, .24);
+      }
       .checker-progress { margin-bottom: 24px; }
-      .checker-progress-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 9px; }
-      .checker-progress-label { margin: 0; color: var(--navy); font-family: Manrope, sans-serif; font-size: 14px; font-weight: 800; }
-      .checker-progress-track { height: 8px; overflow: hidden; border-radius: 999px; background: #e7eef1; }
-      .checker-progress-fill { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--aqua)); transition: width .2s ease; }
-      .checker-navigation { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+      .checker-progress-row {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin-bottom: 9px;
+      }
+      .checker-progress-label {
+        margin: 0;
+        color: var(--navy);
+        font-family: Manrope, sans-serif;
+        font-size: 14px;
+        font-weight: 800;
+      }
+      .checker-progress-track {
+        height: 8px;
+        overflow: hidden;
+        border-radius: 999px;
+        background: #e7eef1;
+      }
+      .checker-progress-fill {
+        display: block;
+        height: 100%;
+        border-radius: inherit;
+        background: linear-gradient(90deg, var(--blue), var(--aqua));
+        transition: width .2s ease;
+      }
+      .checker-navigation {
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        margin-top: 8px;
+      }
       .checker-back { margin-right: auto; }
       .checker-next, .checker-submit { min-width: 190px; }
-      .opening-details { margin-top: 26px; border: 1px solid var(--line); border-radius: 16px; background: var(--sand); }
-      .opening-details summary { padding: 16px 18px; color: var(--navy); font-family: Manrope, sans-serif; font-weight: 800; cursor: pointer; }
-      .opening-details-content { padding: 0 18px 18px; color: var(--muted); }
+      .opening-details {
+        margin-top: 26px;
+        border: 1px solid var(--line);
+        border-radius: 16px;
+        background: var(--sand);
+      }
+      .opening-details summary {
+        padding: 16px 18px;
+        color: var(--navy);
+        font-family: Manrope, sans-serif;
+        font-weight: 800;
+        cursor: pointer;
+      }
+      .opening-details-content {
+        padding: 0 18px 18px;
+        color: var(--muted);
+      }
       .opening-details-content p { margin-top: 0; }
-      .opening-details-content ul { display: grid; gap: 9px; margin: 14px 0 0; padding-left: 20px; }
-      .checker-section, .services-section, .process-section, .request-section { padding-top: 82px; padding-bottom: 82px; }
+      .opening-details-content ul {
+        display: grid;
+        gap: 9px;
+        margin: 14px 0 0;
+        padding-left: 20px;
+      }
+      .checker-section,
+      .services-section,
+      .process-section,
+      .request-section {
+        padding-top: 82px;
+        padding-bottom: 82px;
+      }
       @media (max-width: 680px) {
-        .hero, .checker-section, .services-section, .process-section, .request-section { padding-top: 56px; padding-bottom: 56px; }
-        .checker-navigation { display: grid; grid-template-columns: 1fr; }
-        .checker-back { order: 2; margin-right: 0; }
-        .checker-back, .checker-next, .checker-submit { width: 100%; min-width: 0; }
+        .hero,
+        .checker-section,
+        .services-section,
+        .process-section,
+        .request-section {
+          padding-top: 56px;
+          padding-bottom: 56px;
+        }
+        .checker-navigation {
+          display: grid;
+          grid-template-columns: 1fr;
+        }
+        .checker-back {
+          order: 2;
+          margin-right: 0;
+        }
+        .checker-back,
+        .checker-next,
+        .checker-submit {
+          width: 100%;
+          min-width: 0;
+        }
         .service-card { padding: 22px; }
         .service-card > span { margin-bottom: 16px; }
         .process-list li { padding: 16px; }
       }
     `;
     document.head.appendChild(style);
+
+    const badge = document.createElement("div");
+    badge.className = "preview-badge";
+    badge.textContent = "Compact preview";
+    document.body.appendChild(badge);
   }
 
   function compactOpeningDetails() {
@@ -67,16 +159,105 @@
 
     details.append(summary, content);
     requestIntro.appendChild(details);
+
     document.querySelectorAll('a[href="#launch"]').forEach((link) => {
       link.setAttribute("href", "#launch-request");
     });
+
     launchSection.remove();
   }
 
-  addHomepageCompressionStyles();
-  compactOpeningDetails();
+  let currentStep = 0;
+  let updateStep = () => {};
 
-  if (!form || !resultPanel) return;
+  if (compactPreview) {
+    addHomepageCompressionStyles();
+    compactOpeningDetails();
+
+    const fieldsets = Array.from(form.querySelectorAll("fieldset"));
+    const submitButton = form.querySelector(".checker-submit");
+
+    const progress = document.createElement("div");
+    progress.className = "checker-progress";
+    progress.innerHTML = `
+      <div class="checker-progress-row">
+        <p class="checker-progress-label" aria-live="polite"></p>
+      </div>
+      <div class="checker-progress-track" aria-hidden="true">
+        <span class="checker-progress-fill"></span>
+      </div>
+    `;
+
+    const navigation = document.createElement("div");
+    navigation.className = "checker-navigation";
+
+    const backButton = document.createElement("button");
+    backButton.type = "button";
+    backButton.className = "button button-secondary checker-back";
+    backButton.textContent = "Back";
+
+    const continueButton = document.createElement("button");
+    continueButton.type = "button";
+    continueButton.className = "button checker-next";
+    continueButton.textContent = "Continue";
+
+    form.insertBefore(progress, form.firstElementChild);
+    navigation.append(backButton, continueButton, submitButton);
+    form.insertBefore(error, submitButton);
+    form.insertBefore(navigation, submitButton);
+
+    fieldsets.forEach((fieldset) => {
+      fieldset.querySelector("legend")?.setAttribute("tabindex", "-1");
+    });
+
+    updateStep = (shouldFocus = true) => {
+      fieldsets.forEach((fieldset, index) => {
+        fieldset.hidden = index !== currentStep;
+      });
+
+      const progressLabel = progress.querySelector(".checker-progress-label");
+      const progressFill = progress.querySelector(".checker-progress-fill");
+      progressLabel.textContent = `Question ${currentStep + 1} of ${fieldsets.length}`;
+      progressFill.style.width = `${((currentStep + 1) / fieldsets.length) * 100}%`;
+
+      backButton.hidden = currentStep === 0;
+      continueButton.hidden = currentStep === fieldsets.length - 1;
+      submitButton.hidden = currentStep !== fieldsets.length - 1;
+      error.hidden = true;
+
+      if (shouldFocus) {
+        fieldsets[currentStep].querySelector("legend")?.focus();
+      }
+    };
+
+    function currentStepAnswered() {
+      return Boolean(fieldsets[currentStep]?.querySelector("input:checked"));
+    }
+
+    continueButton.addEventListener("click", () => {
+      if (!currentStepAnswered()) {
+        error.textContent = "Choose an answer to continue.";
+        error.hidden = false;
+        fieldsets[currentStep].querySelector("input")?.focus();
+        return;
+      }
+
+      currentStep += 1;
+      updateStep();
+    });
+
+    backButton.addEventListener("click", () => {
+      if (currentStep === 0) return;
+      currentStep -= 1;
+      updateStep();
+    });
+
+    form.addEventListener("change", (event) => {
+      if (event.target.matches('input[type="radio"]')) error.hidden = true;
+    });
+
+    updateStep(false);
+  }
 
   const concernResults = {
     hardness: {
@@ -125,89 +306,6 @@
       next: "Shut off water or power only when it is safe to do so, and contact an available emergency plumber, electrician or emergency service now."
     }
   };
-
-  const fieldsets = Array.from(form.querySelectorAll("fieldset"));
-  const submitButton = form.querySelector(".checker-submit");
-  let currentStep = 0;
-
-  const progress = document.createElement("div");
-  progress.className = "checker-progress";
-  progress.innerHTML = `
-    <div class="checker-progress-row">
-      <p class="checker-progress-label" aria-live="polite"></p>
-    </div>
-    <div class="checker-progress-track" aria-hidden="true">
-      <span class="checker-progress-fill"></span>
-    </div>
-  `;
-
-  const navigation = document.createElement("div");
-  navigation.className = "checker-navigation";
-
-  const backButton = document.createElement("button");
-  backButton.type = "button";
-  backButton.className = "button button-secondary checker-back";
-  backButton.textContent = "Back";
-
-  const continueButton = document.createElement("button");
-  continueButton.type = "button";
-  continueButton.className = "button checker-next";
-  continueButton.textContent = "Continue";
-
-  form.insertBefore(progress, fieldsets[0]);
-  form.insertBefore(navigation, error);
-  navigation.append(backButton, continueButton, submitButton);
-  form.insertBefore(error, navigation);
-
-  fieldsets.forEach((fieldset) => {
-    fieldset.querySelector("legend")?.setAttribute("tabindex", "-1");
-  });
-
-  function updateStep(shouldFocus = true) {
-    fieldsets.forEach((fieldset, index) => {
-      fieldset.hidden = index !== currentStep;
-    });
-
-    const progressLabel = progress.querySelector(".checker-progress-label");
-    const progressFill = progress.querySelector(".checker-progress-fill");
-    progressLabel.textContent = `Question ${currentStep + 1} of ${fieldsets.length}`;
-    progressFill.style.width = `${((currentStep + 1) / fieldsets.length) * 100}%`;
-
-    backButton.hidden = currentStep === 0;
-    continueButton.hidden = currentStep === fieldsets.length - 1;
-    submitButton.hidden = currentStep !== fieldsets.length - 1;
-    error.hidden = true;
-
-    if (shouldFocus) {
-      fieldsets[currentStep].querySelector("legend")?.focus();
-    }
-  }
-
-  function currentStepAnswered() {
-    return Boolean(fieldsets[currentStep]?.querySelector("input:checked"));
-  }
-
-  continueButton.addEventListener("click", () => {
-    if (!currentStepAnswered()) {
-      error.textContent = "Choose an answer to continue.";
-      error.hidden = false;
-      fieldsets[currentStep].querySelector("input")?.focus();
-      return;
-    }
-
-    currentStep += 1;
-    updateStep();
-  });
-
-  backButton.addEventListener("click", () => {
-    if (currentStep === 0) return;
-    currentStep -= 1;
-    updateStep();
-  });
-
-  form.addEventListener("change", (event) => {
-    if (event.target.matches('input[type="radio"]')) error.hidden = true;
-  });
 
   function selected(name) {
     return form.querySelector(`input[name="${name}"]:checked`)?.value || "";
@@ -288,10 +386,12 @@
     resultPanel.hidden = true;
     summaryInput.value = "";
     attachedNote.hidden = true;
-    currentStep = 0;
-    updateStep(false);
+
+    if (compactPreview) {
+      currentStep = 0;
+      updateStep(false);
+    }
+
     form.querySelector("input")?.focus();
   });
-
-  updateStep(false);
 })();
