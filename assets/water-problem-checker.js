@@ -201,10 +201,10 @@
     continueButton.className = "button checker-next";
     continueButton.textContent = "Continue";
 
-    form.insertBefore(progress, form.firstElementChild);
-    navigation.append(backButton, continueButton, submitButton);
-    form.insertBefore(error, submitButton);
+    form.insertBefore(progress, fieldsets[0]);
+    navigation.append(backButton, continueButton);
     form.insertBefore(navigation, submitButton);
+    navigation.append(submitButton);
 
     fieldsets.forEach((fieldset) => {
       fieldset.querySelector("legend")?.setAttribute("tabindex", "-1");
