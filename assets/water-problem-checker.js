@@ -15,6 +15,67 @@
   const year = document.getElementById("year");
 
   if (year) year.textContent = String(new Date().getFullYear());
+
+  function addHomepageCompressionStyles() {
+    const style = document.createElement("style");
+    style.textContent = `
+      .checker-progress { margin-bottom: 24px; }
+      .checker-progress-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; margin-bottom: 9px; }
+      .checker-progress-label { margin: 0; color: var(--navy); font-family: Manrope, sans-serif; font-size: 14px; font-weight: 800; }
+      .checker-progress-track { height: 8px; overflow: hidden; border-radius: 999px; background: #e7eef1; }
+      .checker-progress-fill { display: block; height: 100%; border-radius: inherit; background: linear-gradient(90deg, var(--blue), var(--aqua)); transition: width .2s ease; }
+      .checker-navigation { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+      .checker-back { margin-right: auto; }
+      .checker-next, .checker-submit { min-width: 190px; }
+      .opening-details { margin-top: 26px; border: 1px solid var(--line); border-radius: 16px; background: var(--sand); }
+      .opening-details summary { padding: 16px 18px; color: var(--navy); font-family: Manrope, sans-serif; font-weight: 800; cursor: pointer; }
+      .opening-details-content { padding: 0 18px 18px; color: var(--muted); }
+      .opening-details-content p { margin-top: 0; }
+      .opening-details-content ul { display: grid; gap: 9px; margin: 14px 0 0; padding-left: 20px; }
+      .checker-section, .services-section, .process-section, .request-section { padding-top: 82px; padding-bottom: 82px; }
+      @media (max-width: 680px) {
+        .hero, .checker-section, .services-section, .process-section, .request-section { padding-top: 56px; padding-bottom: 56px; }
+        .checker-navigation { display: grid; grid-template-columns: 1fr; }
+        .checker-back { order: 2; margin-right: 0; }
+        .checker-back, .checker-next, .checker-submit { width: 100%; min-width: 0; }
+        .service-card { padding: 22px; }
+        .service-card > span { margin-bottom: 16px; }
+        .process-list li { padding: 16px; }
+      }
+    `;
+    document.head.appendChild(style);
+  }
+
+  function compactOpeningDetails() {
+    const launchSection = document.querySelector(".launch-section");
+    const launchCard = launchSection?.querySelector(".launch-card");
+    const requestIntro = document.querySelector(".request-section .section-intro");
+    if (!launchSection || !launchCard || !requestIntro) return;
+
+    const launchCopy = launchCard.querySelector("div > p:last-child");
+    const launchList = launchCard.querySelector("ul");
+    const details = document.createElement("details");
+    details.className = "opening-details";
+
+    const summary = document.createElement("summary");
+    summary.textContent = "Opening details";
+
+    const content = document.createElement("div");
+    content.className = "opening-details-content";
+    if (launchCopy) content.appendChild(launchCopy);
+    if (launchList) content.appendChild(launchList);
+
+    details.append(summary, content);
+    requestIntro.appendChild(details);
+    document.querySelectorAll('a[href="#launch"]').forEach((link) => {
+      link.setAttribute("href", "#launch-request");
+    });
+    launchSection.remove();
+  }
+
+  addHomepageCompressionStyles();
+  compactOpeningDetails();
+
   if (!form || !resultPanel) return;
 
   const concernResults = {
@@ -65,6 +126,89 @@
     }
   };
 
+  const fieldsets = Array.from(form.querySelectorAll("fieldset"));
+  const submitButton = form.querySelector(".checker-submit");
+  let currentStep = 0;
+
+  const progress = document.createElement("div");
+  progress.className = "checker-progress";
+  progress.innerHTML = `
+    <div class="checker-progress-row">
+      <p class="checker-progress-label" aria-live="polite"></p>
+    </div>
+    <div class="checker-progress-track" aria-hidden="true">
+      <span class="checker-progress-fill"></span>
+    </div>
+  `;
+
+  const navigation = document.createElement("div");
+  navigation.className = "checker-navigation";
+
+  const backButton = document.createElement("button");
+  backButton.type = "button";
+  backButton.className = "button button-secondary checker-back";
+  backButton.textContent = "Back";
+
+  const continueButton = document.createElement("button");
+  continueButton.type = "button";
+  continueButton.className = "button checker-next";
+  continueButton.textContent = "Continue";
+
+  form.insertBefore(progress, fieldsets[0]);
+  form.insertBefore(navigation, error);
+  navigation.append(backButton, continueButton, submitButton);
+  form.insertBefore(error, navigation);
+
+  fieldsets.forEach((fieldset) => {
+    fieldset.querySelector("legend")?.setAttribute("tabindex", "-1");
+  });
+
+  function updateStep(shouldFocus = true) {
+    fieldsets.forEach((fieldset, index) => {
+      fieldset.hidden = index !== currentStep;
+    });
+
+    const progressLabel = progress.querySelector(".checker-progress-label");
+    const progressFill = progress.querySelector(".checker-progress-fill");
+    progressLabel.textContent = `Question ${currentStep + 1} of ${fieldsets.length}`;
+    progressFill.style.width = `${((currentStep + 1) / fieldsets.length) * 100}%`;
+
+    backButton.hidden = currentStep === 0;
+    continueButton.hidden = currentStep === fieldsets.length - 1;
+    submitButton.hidden = currentStep !== fieldsets.length - 1;
+    error.hidden = true;
+
+    if (shouldFocus) {
+      fieldsets[currentStep].querySelector("legend")?.focus();
+    }
+  }
+
+  function currentStepAnswered() {
+    return Boolean(fieldsets[currentStep]?.querySelector("input:checked"));
+  }
+
+  continueButton.addEventListener("click", () => {
+    if (!currentStepAnswered()) {
+      error.textContent = "Choose an answer to continue.";
+      error.hidden = false;
+      fieldsets[currentStep].querySelector("input")?.focus();
+      return;
+    }
+
+    currentStep += 1;
+    updateStep();
+  });
+
+  backButton.addEventListener("click", () => {
+    if (currentStep === 0) return;
+    currentStep -= 1;
+    updateStep();
+  });
+
+  form.addEventListener("change", (event) => {
+    if (event.target.matches('input[type="radio"]')) error.hidden = true;
+  });
+
   function selected(name) {
     return form.querySelector(`input[name="${name}"]:checked`)?.value || "";
   }
@@ -94,6 +238,7 @@
     const equipment = selected("equipment");
 
     if (!source || !concern || !location || !equipment) {
+      error.textContent = "Please answer all four questions.";
       error.hidden = false;
       return;
     }
@@ -143,6 +288,10 @@
     resultPanel.hidden = true;
     summaryInput.value = "";
     attachedNote.hidden = true;
+    currentStep = 0;
+    updateStep(false);
     form.querySelector("input")?.focus();
   });
+
+  updateStep(false);
 })();
