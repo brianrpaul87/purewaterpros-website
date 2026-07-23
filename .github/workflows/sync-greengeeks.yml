@@ -1,0 +1,196 @@
+name: Sync authoritative GreenGeeks website
+
+on:
+  push:
+    branches:
+      - agent/sync-greengeeks-authoritative-july-22
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out synchronization branch
+        uses: actions/checkout@v4
+        with:
+          ref: agent/sync-greengeeks-authoritative-july-22
+
+      - name: Download and verify production files
+        shell: bash
+        run: |
+          set -euo pipefail
+          base='https://www.purewaterpros.ca'
+          files=(
+            chemical-injection-water-treatment-victoria.html
+            contact.html
+            index.html
+            iron-sulfur-water-treatment-victoria.html
+            low-yield-well-storage-victoria.html
+            privacy-policy.html
+            reverse-osmosis-victoria.html
+            service-areas.html
+            sitemap.xml
+            thank-you.html
+            uv-water-treatment-victoria.html
+            water-filtration-victoria.html
+            water-softeners-victoria.html
+            water-treatment-langford-west-shore.html
+            water-treatment-service-victoria.html
+          )
+          declare -A expected=(
+            [chemical-injection-water-treatment-victoria.html]='81d7fb91b94f33efa23b3c66236d26f95da777726572c4103f75690e7e25ee16'
+            [contact.html]='6ebe307875afa3d7b0441edcb891437ac67190f8a150987c9dff3b6d483fe03a'
+            [index.html]='5b95f2627329754bd2a1dc141109066e02a6efde94d6e6cfcc8a496c3f9eeec1'
+            [iron-sulfur-water-treatment-victoria.html]='23850658f8eb7f161c59030c8603498ad8803d596adf177a5a66d39595f54672'
+            [low-yield-well-storage-victoria.html]='7d9eeb459d87c4257951b32882d6a791b3b87445cbb59e1211228e9fdf2d34f1'
+            [privacy-policy.html]='0b6e5f6caf8aa4a61d46b8602585bb2d4fe5c4638d65bb2985ff2e3e69b6fb13'
+            [reverse-osmosis-victoria.html]='29e17394679251c6394cf20e2cf429b3fd574a529b2a4d0a0b528dac8eac39ac'
+            [service-areas.html]='ed0d1e7f233ed2800746263677c03d819dc5cb14444cd76e46d602c340abf3e7'
+            [sitemap.xml]='05ebcab24de0dfcd4a0cbd389ebcd87cd0089f802e5912e4f32401e91cd8c739'
+            [thank-you.html]='7f790df0db254dc6051c1b74ca0d5b81024edd6e9040e1236d43597a9e6c1612'
+            [uv-water-treatment-victoria.html]='cbfb399a7936b32aad2dc3aea8f016738e520a142777e6fe79d693d141407044'
+            [water-filtration-victoria.html]='7696f18f0f09ed98d51b718fdb9d8e6e9bb017e5407609402420377f69fcbc4f'
+            [water-softeners-victoria.html]='7ec14fc49264564997964b18084da3c87557a9358c5af2cb64d7340c0adb7336'
+            [water-treatment-langford-west-shore.html]='faacf2da1f14530e30ecee96bfbcd314ab1d7a06cc569a4e544e9bbfdb845c55'
+            [water-treatment-service-victoria.html]='d93b8540fa7c7cd6011d6df365feb45af40e27f14116b371e247350e42dbcebc'
+          )
+
+          for file in "${files[@]}"; do
+            curl -fsSL --compressed --retry 3 --retry-delay 2 \
+              -A 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 Chrome/142 Safari/537.36' \
+              -H 'Accept: text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8' \
+              -H 'Cache-Control: no-cache' \
+              "$base/$file?github-sync=20260722" -o "/tmp/$file"
+            echo "${expected[$file]}  /tmp/$file" | sha256sum -c -
+            cp "/tmp/$file" "$file"
+          done
+
+          cat > contact.php <<'PHP'
+<?php
+declare(strict_types=1);
+
+$to = 'info@purewaterpros.ca';
+$fromSite = 'Pure Water Pros <no-reply@purewaterpros.ca>';
+
+function clean_field(string $key, int $max = 4000): string {
+    $value = isset($_POST[$key]) ? trim(strip_tags((string) $_POST[$key])) : '';
+    $value = str_replace(["\r\n", "\r"], "\n", $value);
+    return substr($value, 0, $max);
+}
+
+function single_line(string $value): string {
+    return trim(str_replace(["\r", "\n"], ' ', $value));
+}
+
+if (($_SERVER['REQUEST_METHOD'] ?? '') !== 'POST') {
+    header('Location: /#launch-request', true, 303);
+    exit;
+}
+
+if (clean_field('website', 200) !== '') {
+    header('Location: /thank-you.html', true, 303);
+    exit;
+}
+
+$name = single_line(clean_field('name', 160));
+$email = single_line(clean_field('email', 254));
+$phone = single_line(clean_field('phone', 80));
+$postalCode = single_line(clean_field('postal_code', 24));
+$waterSource = single_line(clean_field('water_source', 80));
+$subjectSelection = single_line(clean_field('subject', 120));
+$message = clean_field('message', 5000);
+$diagnostic = clean_field('diagnostic_summary', 5000);
+$consent = single_line(clean_field('consent', 40));
+
+if ($name === '' || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+    header('Location: /?form=missing#launch-request', true, 303);
+    exit;
+}
+
+if ($consent !== 'accepted') {
+    header('Location: /?form=consent#launch-request', true, 303);
+    exit;
+}
+
+$allowedWaterSources = [
+    'Not sure',
+    'Private well',
+    'Municipal water'
+];
+if (!in_array($waterSource, $allowedWaterSources, true)) {
+    $waterSource = 'Not sure';
+}
+
+$allowedSubjects = [
+    'Pre-launch water assessment',
+    'Existing equipment service',
+    'Water softener',
+    'Iron or sulfur treatment',
+    'UV disinfection',
+    'Reverse osmosis drinking water',
+    'Chemical injection or oxidation',
+    'Low-yield well storage or cistern',
+    'General pre-launch question'
+];
+if (!in_array($subjectSelection, $allowedSubjects, true)) {
+    $subjectSelection = 'General pre-launch question';
+}
+
+$safeReplyTo = str_replace(["\r", "\n"], '', $email);
+$safeName = single_line($name);
+$safeSubjectSelection = single_line($subjectSelection);
+
+$subject = "Pre-launch request: {$safeSubjectSelection} — {$safeName}";
+$body = "New Pure Water Pros pre-launch request\n\n";
+$body .= "Name: {$name}\n";
+$body .= "Email: {$email}\n";
+$body .= "Phone: " . ($phone !== '' ? $phone : 'Not provided') . "\n";
+$body .= "Postal code: " . ($postalCode !== '' ? $postalCode : 'Not provided') . "\n";
+$body .= "Water source: {$waterSource}\n";
+$body .= "Request type: {$subjectSelection}\n";
+$body .= "Pre-launch consent: accepted\n\n";
+$body .= "Customer message:\n" . ($message !== '' ? $message : 'No additional message') . "\n\n";
+
+if ($diagnostic !== '') {
+    $body .= "Water Problem Checker summary:\n{$diagnostic}\n\n";
+}
+
+$body .= "Pre-launch notice acknowledged: service is not currently operating and opening is planned for September 2026 and the requested appointment is not confirmed until direct follow-up.\n";
+$body .= "\n— Sent from purewaterpros.ca";
+
+$headers = "From: {$fromSite}\r\n";
+$headers .= "Reply-To: {$safeReplyTo}\r\n";
+$headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+$headers .= "X-Mailer: PHP/" . phpversion();
+
+$sent = @mail($to, $subject, $body, $headers);
+
+if ($sent) {
+    header('Location: /thank-you.html', true, 303);
+} else {
+    header('Location: /?form=send#launch-request', true, 303);
+}
+exit;
+?>
+PHP
+          echo '9d7a73408b83f99bc9476afe390e4806d5b9bf12f53c93eefe2a0cd8c403431d  contact.php' | sha256sum -c -
+
+          rm -rf .sync-payload
+          rm -f .github/workflows/sync-greengeeks.yml
+
+      - name: Commit verified synchronization
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          if git diff --cached --quiet; then
+            echo 'No synchronization changes were required.'
+            exit 0
+          fi
+          git commit -m 'Sync authoritative GreenGeeks website'
+          git push origin HEAD:agent/sync-greengeeks-authoritative-july-22
