@@ -65,6 +65,9 @@ jobs:
               'pre-launch request': 'service request',
               'Pre-launch water assessment': 'Water assessment',
               'General pre-launch question': 'General question',
+              'Privacy policy for the Pure Water Pros website and pre-launch contact form.': 'Privacy policy for the Pure Water Pros website and service request form.',
+              'The pre-launch contact form may collect': 'The service request form may collect',
+              'questions and pre-launch service requests': 'questions and service requests',
           }
 
           changed = []
