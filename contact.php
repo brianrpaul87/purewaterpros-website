@@ -55,7 +55,7 @@ if (!in_array($waterSource, $allowedWaterSources, true)) {
 }
 
 $allowedSubjects = [
-    'Pre-launch water assessment',
+    'Water assessment',
     'Existing equipment service',
     'Water softener',
     'Iron or sulfur treatment',
@@ -63,32 +63,31 @@ $allowedSubjects = [
     'Reverse osmosis drinking water',
     'Chemical injection or oxidation',
     'Low-yield well storage or cistern',
-    'General pre-launch question'
+    'General question'
 ];
 if (!in_array($subjectSelection, $allowedSubjects, true)) {
-    $subjectSelection = 'General pre-launch question';
+    $subjectSelection = 'General question';
 }
 
 $safeReplyTo = str_replace(["\r", "\n"], '', $email);
 $safeName = single_line($name);
 $safeSubjectSelection = single_line($subjectSelection);
 
-$subject = "Pre-launch request: {$safeSubjectSelection} — {$safeName}";
-$body = "New Pure Water Pros pre-launch request\n\n";
+$subject = "Service request: {$safeSubjectSelection} — {$safeName}";
+$body = "New Pure Water Pros service request\n\n";
 $body .= "Name: {$name}\n";
 $body .= "Email: {$email}\n";
 $body .= "Phone: " . ($phone !== '' ? $phone : 'Not provided') . "\n";
 $body .= "Postal code: " . ($postalCode !== '' ? $postalCode : 'Not provided') . "\n";
 $body .= "Water source: {$waterSource}\n";
-$body .= "Request type: {$subjectSelection}\n";
-$body .= "Pre-launch consent: accepted\n\n";
+$body .= "Request type: {$subjectSelection}\n\n";
 $body .= "Customer message:\n" . ($message !== '' ? $message : 'No additional message') . "\n\n";
 
 if ($diagnostic !== '') {
     $body .= "Water Problem Checker summary:\n{$diagnostic}\n\n";
 }
 
-$body .= "Pre-launch notice acknowledged: service is not currently operating and opening is planned for September 2026 and the requested appointment is not confirmed until direct follow-up.\n";
+$body .= "Customer acknowledged that the requested date/time is not confirmed until Pure Water Pros follows up directly.\n";
 $body .= "\n— Sent from purewaterpros.ca";
 
 $headers = "From: {$fromSite}\r\n";
