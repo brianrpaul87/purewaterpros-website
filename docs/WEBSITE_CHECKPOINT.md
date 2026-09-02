@@ -1,98 +1,60 @@
 # Pure Water Pros Website Checkpoint
 
-**Hard-saved:** July 10, 2026
+**Updated:** September 1, 2026
 
-## Repository and branches
+## Repository and deployment
 
 - Repository: `brianrpaul87/purewaterpros-website`
-- `main`: imported copy of the current GreenGeeks website
-- `redesign`: active pre-launch redesign branch
-- The GreenGeeks live website has not been changed by this redesign work.
+- Production branch: `main`
+- Live hosting: GreenGeeks
+- GitHub does **not** automatically deploy to GreenGeeks; production files must be uploaded to the site hosting account.
 
-## Business decisions locked in
+## Current business state
 
-- Pure Water Pros is not currently operating.
-- Target opening: the third week of August 2026.
-- Initial service area: Greater Victoria and the West Shore, British Columbia.
-- The discontinued phone number `905-242-3846` must not appear in the redesign.
-- No public service phone number is advertised before launch.
-- The site must not imply same-day service, active emergency service, or confirmed appointment availability before launch.
-- Primary pre-launch conversion: request an August follow-up by email/form.
+Pure Water Pros entered a **soft launch on September 1, 2026**.
 
-## Redesign direction
+Public website language should now reflect an operating business that is accepting inquiries and booking a limited number of September appointments. It should no longer describe Pure Water Pros as "pre-launch," "preparing to open," or waiting for scheduling to begin.
 
-- Clean, premium local-service presentation using light backgrounds, deep navy and aqua accents.
-- Homeowner-first language rather than technician-note language.
-- Clear pre-launch notices throughout the site.
-- Real installation photography retained as a trust asset.
-- Strong mobile-first layout.
+The business should not imply same-day or emergency-response availability unless that capability is intentionally added later.
+
+## Current homepage position
+
+The homepage now:
+
+- says Pure Water Pros is **now booking September appointments**;
+- accepts service requests rather than pre-launch requests;
+- keeps the Water Problem Checker;
+- emphasizes reverse osmosis and existing-equipment service for the initial launch period;
+- keeps broader whole-home and advanced treatment services available for assessment/quotation;
+- retains the published phone number `778-400-1267` and `info@purewaterpros.ca`;
+- preserves the existing Greater Victoria / West Shore SEO structure and service pages.
 
 ## Water Problem Checker
 
-A deterministic guided tool has been built into the pre-launch homepage. It is intentionally not marketed as a full AI diagnosis.
+The deterministic guided Water Problem Checker remains on the homepage. It is educational and does not confirm water safety or replace proper testing.
 
-Purpose:
+Current paths include hardness/scale, iron or manganese staining, sulfur/odour, chlorine/drinking-water concerns, sediment/cloudiness, weak pressure/flow, existing treatment not working, bacteria/safety concerns, and leak/flooding/electrical risks.
 
-- educate the homeowner;
-- identify a sensible next conversation;
-- explain why testing and inspection matter before equipment selection;
-- reassure the visitor that contacting Pure Water Pros is the logical next step;
-- attach useful context to the lead form.
+## Contact flow
 
-Current paths include:
+- Homepage form is now a service-request form.
+- `contact.php` emails requests to `info@purewaterpros.ca`.
+- Checker results can be attached to the request.
+- The form includes a honeypot spam field and validation.
+- `thank-you.html` now confirms receipt of a service request without pre-launch language.
+- `contact.html` redirects visitors to the homepage service-request section.
 
-- hardness/scale;
-- iron or manganese staining;
-- sulfur or unusual odour;
-- chlorine/drinking-water concerns;
-- sediment/cloudiness;
-- weak pressure/flow;
-- existing treatment not working;
-- positive bacteria/safety concern;
-- active leak/flooding/electrical risk.
+## Files required for the September 1 GreenGeeks update
 
-Special logic includes:
+Upload/replace these files in the Pure Water Pros web root:
 
-- hot-water-only odour directs attention to the water heater/anode before whole-home sulfur treatment;
-- existing treatment prompts raw-versus-treated testing and equipment identification;
-- urgent health and flooding concerns are directed away from waiting for an August appointment.
+1. `index.html`
+2. `contact.php`
+3. `contact.html`
+4. `thank-you.html`
 
-The checker is educational only and does not confirm water safety or replace proper testing.
-
-## Files changed on `redesign`
-
-- `index.html`
-- `assets/prelaunch.css`
-- `assets/water-problem-checker.js`
-- `contact.php`
-- `contact.html`
-- `thank-you.html`
-- `.htaccess`
-- `sitemap.xml`
-
-## Contact and form behaviour
-
-- Homepage form is labelled as a pre-launch follow-up request, not a confirmed appointment.
-- Checker results can be attached to the form.
-- PHP handler emails requests to `info@purewaterpros.ca`.
-- Form includes a honeypot spam field and basic validation.
-- Thank-you page repeats that the submission is not a confirmed appointment.
-
-## Pre-launch routing and SEO
-
-- `.htaccess` temporarily redirects old public pages to the pre-launch homepage while allowing assets, images, form submission and the thank-you page.
-- The sitemap contains only the homepage during pre-launch.
-- Structured data describes an organization preparing to open, not an active local business.
-
-## Next website steps
-
-1. Create a visual preview of the `redesign` branch.
-2. Review desktop and mobile presentation.
-3. Confirm final wording, service area and launch date.
-4. Confirm which replacement phone number, if any, should be published at launch.
-5. Deploy to GreenGeeks only after approval.
-6. Later expand the pre-launch page into the full service website while preserving the checker.
+No CSS, JavaScript, image, sitemap, or `.htaccess` replacement is required for this specific soft-launch copy update.
 
 ## Current status
 
-Website work is parked here so development can return to Water Copilot Pro.
+The GitHub `main` branch is the authoritative September 1, 2026 soft-launch version. GreenGeeks must be manually updated with the four production files listed above.
