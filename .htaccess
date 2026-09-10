@@ -16,7 +16,13 @@ RewriteRule ^ https://www.purewaterpros.ca%{REQUEST_URI} [R=301,L]
 RewriteCond %{THE_REQUEST} \s/+index\.html(?:[\s?]) [NC]
 RewriteRule ^index\.html$ https://www.purewaterpros.ca/ [R=301,L]
 
+# Do not expose /blog/index.html as a second blog index URL.
+RewriteCond %{THE_REQUEST} \s/+blog/index\.html(?:[\s?]) [NC]
+RewriteRule ^blog/index\.html$ https://www.purewaterpros.ca/blog/ [R=301,L]
+
 # Retire old/unknown HTML pages while allowing the current BC website pages.
+# Blog pages are intentionally excluded from the legacy-page redirect.
+RewriteCond %{REQUEST_URI} !^/blog(?:/.*)?$ [NC]
 RewriteCond %{REQUEST_URI} !^/(?:thank-you|water-filtration-victoria|water-softeners-victoria|reverse-osmosis-victoria|uv-water-treatment-victoria|iron-sulfur-water-treatment-victoria|chemical-injection-water-treatment-victoria|low-yield-well-storage-victoria|water-treatment-service-victoria|service-areas|water-treatment-langford-west-shore|privacy-policy)\.html$ [NC]
 RewriteRule ^.+\.html$ https://www.purewaterpros.ca/ [R=301,L]
 
