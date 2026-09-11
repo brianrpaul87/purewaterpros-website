@@ -1,0 +1,63 @@
+name: Deploy sulfur article to GreenGeeks
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FTP_HOST: ${{ secrets.GREENGEEKS_FTP_HOST }}
+      FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
+      REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Validate deployment inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f assets/well-water-sulfur-vancouver-island.webp
+          test -f blog/well-water-rotten-egg-smell-vancouver-island.html
+          test -n "$FTP_HOST" || { echo 'Missing GREENGEEKS_FTP_HOST secret'; exit 1; }
+          test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
+          test -n "$FTP_PASSWORD" || { echo 'Missing GREENGEEKS_FTP_PASSWORD secret'; exit 1; }
+
+      - name: Install lftp
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+
+      - name: Deploy hero image and article
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${REMOTE_ROOT:-/public_html}"
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
+          set cmd:fail-exit yes
+          set net:max-retries 2
+          set net:timeout 20
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          cd "$ROOT"
+          mkdir -p assets
+          mkdir -p blog
+          put -O assets assets/well-water-sulfur-vancouver-island.webp
+          put -O blog blog/well-water-rotten-egg-smell-vancouver-island.html
+          bye
+          EOF
+
+      - name: Confirm deployed paths
+        shell: bash
+        run: |
+          echo 'Deployed:'
+          echo '  /assets/well-water-sulfur-vancouver-island.webp'
+          echo '  /blog/well-water-rotten-egg-smell-vancouver-island.html'
