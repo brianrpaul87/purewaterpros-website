@@ -2,6 +2,13 @@ name: Deploy sulfur article to GreenGeeks
 
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/deploy-sulfur-article-to-greengeeks.yml'
+      - 'assets/well-water-sulfur-vancouver-island.webp'
+      - 'blog/well-water-rotten-egg-smell-vancouver-island.html'
 
 permissions:
   contents: read
