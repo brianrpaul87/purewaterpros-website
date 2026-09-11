@@ -75,7 +75,6 @@ jobs:
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
-          mkdir -p "$TARGET"
           put -O "$TARGET" wtr-source/index.html
           put -O "$TARGET" wtr-source/script.js
           bye
