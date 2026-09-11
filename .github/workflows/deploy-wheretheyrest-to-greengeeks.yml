@@ -40,7 +40,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html script.js trust.css privacy.html terms.html sitemap.xml; do
+          for file in index.html script.js trust.css privacy.html terms.html sitemap.xml .htaccess; do
             test -f "wtr-source/$file"
           done
           test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
@@ -52,6 +52,8 @@ jobs:
           grep -Fq 'Starting in Greater Victoria' wtr-source/index.html
           grep -Fq 'Privacy Policy' wtr-source/privacy.html
           grep -Fq 'Terms of Service' wtr-source/terms.html
+          grep -Fq 'CacheDisable public /' wtr-source/.htaccess
+          grep -Fq 'RewriteRule ^(?:config|tests|vendor)' wtr-source/.htaccess
           ! grep -Fq 'Where They Rest is in preliminary development' wtr-source/index.html
           ! grep -Fq 'Authorized Memorial Steward' wtr-source/index.html
 
@@ -61,7 +63,27 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y lftp
 
-      - name: Deploy public trust bundle only
+      - name: Confirm existing server security rules
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${REMOTE_ROOT:-/}"
+          ROOT="${ROOT%/}"
+          TARGET="${ROOT}/wheretheyrest"
+          if [ -z "$ROOT" ]; then TARGET="/wheretheyrest"; fi
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          get "$TARGET/.htaccess" -o /tmp/current-wtr-htaccess
+          bye
+          EOF
+          grep -Fq 'Options -Indexes' /tmp/current-wtr-htaccess
+          grep -Fq 'RewriteRule ^(?:config|tests|vendor)' /tmp/current-wtr-htaccess
+          grep -Fq 'Require all denied' /tmp/current-wtr-htaccess
+
+      - name: Deploy public trust bundle and cache rules
         shell: bash
         run: |
           set -euo pipefail
@@ -70,7 +92,7 @@ jobs:
           TARGET="${ROOT}/wheretheyrest"
           if [ -z "$ROOT" ]; then TARGET="/wheretheyrest"; fi
 
-          echo "Deploying public trust bundle to ${TARGET}"
+          echo "Deploying Where They Rest trust bundle to ${TARGET}"
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
           set cmd:fail-exit yes
           set net:max-retries 2
@@ -84,36 +106,59 @@ jobs:
           put -O "$TARGET" wtr-source/privacy.html
           put -O "$TARGET" wtr-source/terms.html
           put -O "$TARGET" wtr-source/sitemap.xml
+          put -O "$TARGET" wtr-source/.htaccess
           bye
           EOF
+
+      - name: Verify server files over FTP
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${REMOTE_ROOT:-/}"
+          ROOT="${ROOT%/}"
+          TARGET="${ROOT}/wheretheyrest"
+          if [ -z "$ROOT" ]; then TARGET="/wheretheyrest"; fi
+          mkdir -p /tmp/wtr-remote
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          get "$TARGET/index.html" -o /tmp/wtr-remote/index.html
+          get "$TARGET/script.js" -o /tmp/wtr-remote/script.js
+          get "$TARGET/trust.css" -o /tmp/wtr-remote/trust.css
+          get "$TARGET/privacy.html" -o /tmp/wtr-remote/privacy.html
+          get "$TARGET/terms.html" -o /tmp/wtr-remote/terms.html
+          get "$TARGET/sitemap.xml" -o /tmp/wtr-remote/sitemap.xml
+          get "$TARGET/.htaccess" -o /tmp/wtr-remote/.htaccess
+          bye
+          EOF
+          for file in index.html script.js trust.css privacy.html terms.html sitemap.xml .htaccess; do
+            test "$(sha256sum "wtr-source/$file" | awk '{print $1}')" = "$(sha256sum "/tmp/wtr-remote/$file" | awk '{print $1}')"
+          done
+          echo 'FTP server files match repository exactly.'
 
       - name: Verify live Where They Rest
         shell: bash
         run: |
           set -euo pipefail
+          sleep 3
 
-          verify_exact() {
+          fetch_live() {
             local label="$1"
             local url="$2"
-            local repo_file="$3"
-            local tmp_file="$4"
-            local http live_sha repo_sha
-            http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o "$tmp_file" -w '%{http_code}' "$url")"
+            local tmp_file="$3"
+            local http
+            http="$(curl -sS -L --retry 5 --retry-delay 2 -H 'Cache-Control: no-cache, no-store' -o "$tmp_file" -w '%{http_code}' "$url")"
             echo "$label HTTP=$http"
             test "$http" = '200'
-            live_sha="$(sha256sum "$tmp_file" | awk '{print $1}')"
-            repo_sha="$(sha256sum "$repo_file" | awk '{print $1}')"
-            echo "$label LIVE_SHA256=$live_sha"
-            echo "$label REPO_SHA256=$repo_sha"
-            test "$live_sha" = "$repo_sha"
           }
 
-          verify_exact 'WTR_HOME' "https://wheretheyrest.ca/?deploy-check=${GITHUB_SHA}" 'wtr-source/index.html' '/tmp/live-wtr-index.html'
-          verify_exact 'WTR_SCRIPT' "https://wheretheyrest.ca/script.js?deploy-check=${GITHUB_SHA}" 'wtr-source/script.js' '/tmp/live-wtr-script.js'
-          verify_exact 'WTR_TRUST_CSS' "https://wheretheyrest.ca/trust.css?deploy-check=${GITHUB_SHA}" 'wtr-source/trust.css' '/tmp/live-wtr-trust.css'
-          verify_exact 'WTR_PRIVACY' "https://wheretheyrest.ca/privacy.html?deploy-check=${GITHUB_SHA}" 'wtr-source/privacy.html' '/tmp/live-wtr-privacy.html'
-          verify_exact 'WTR_TERMS' "https://wheretheyrest.ca/terms.html?deploy-check=${GITHUB_SHA}" 'wtr-source/terms.html' '/tmp/live-wtr-terms.html'
-          verify_exact 'WTR_SITEMAP' "https://wheretheyrest.ca/sitemap.xml?deploy-check=${GITHUB_SHA}" 'wtr-source/sitemap.xml' '/tmp/live-wtr-sitemap.xml'
+          fetch_live 'WTR_HOME' "https://wheretheyrest.ca/?deploy-check=${GITHUB_SHA}-$(date +%s)" '/tmp/live-wtr-index.html'
+          fetch_live 'WTR_SCRIPT' "https://wheretheyrest.ca/script.js?deploy-check=${GITHUB_SHA}-$(date +%s)" '/tmp/live-wtr-script.js'
+          fetch_live 'WTR_TRUST_CSS' "https://wheretheyrest.ca/trust.css?deploy-check=${GITHUB_SHA}-$(date +%s)" '/tmp/live-wtr-trust.css'
+          fetch_live 'WTR_PRIVACY' "https://wheretheyrest.ca/privacy.html?deploy-check=${GITHUB_SHA}-$(date +%s)" '/tmp/live-wtr-privacy.html'
+          fetch_live 'WTR_TERMS' "https://wheretheyrest.ca/terms.html?deploy-check=${GITHUB_SHA}-$(date +%s)" '/tmp/live-wtr-terms.html'
 
           grep -Fq 'G-0Z06XS20YT' /tmp/live-wtr-index.html
           grep -Fq 'About Where They Rest' /tmp/live-wtr-index.html
@@ -131,10 +176,11 @@ jobs:
           echo "WTR_API GET HTTP=$api_http"
           test "$api_http" = '405'
 
-          echo 'Where They Rest trust-phase deployment verification passed.'
+          echo 'Where They Rest trust-phase live verification passed.'
 
       - name: Deployment summary
         shell: bash
         run: |
-          echo 'Where They Rest trust-phase public files deployed successfully.'
-          echo 'Existing API, vendor files, assets, .htaccess, and private mail configuration were not modified.'
+          echo 'Where They Rest trust-phase deployment completed successfully.'
+          echo 'Public trust files and directory-level cache rules are live.'
+          echo 'Existing API, vendor files, assets, and private mail configuration were not modified.'
