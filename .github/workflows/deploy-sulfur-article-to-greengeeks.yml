@@ -54,8 +54,6 @@ jobs:
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
           cd "$ROOT"
-          mkdir -p assets
-          mkdir -p blog
           put -O assets assets/well-water-sulfur-vancouver-island.webp
           put -O blog blog/well-water-rotten-egg-smell-vancouver-island.html
           bye
