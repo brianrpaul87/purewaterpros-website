@@ -1,2 +1,3 @@
 Where They Rest production deploy trigger.
 Latest source sync requested: 2026-09-11 SEO audit metadata and Organization schema cleanup.
+Pure Water Pros production deploy trigger: 2026-09-11 remove failed field-experience homepage section.
