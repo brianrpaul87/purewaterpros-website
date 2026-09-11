@@ -1,4 +1,4 @@
-name: Deploy sulfur article to GreenGeeks
+name: Deploy Pure Water Pros website to GreenGeeks
 
 on:
   workflow_dispatch:
@@ -6,12 +6,17 @@ on:
     branches:
       - main
     paths:
+      - '**'
+      - '!docs/**'
+      - '!.github/**'
       - '.github/workflows/deploy-sulfur-article-to-greengeeks.yml'
-      - 'assets/well-water-sulfur-vancouver-island.webp'
-      - 'blog/well-water-rotten-egg-smell-vancouver-island.html'
 
 permissions:
   contents: read
+
+concurrency:
+  group: pure-water-pros-production
+  cancel-in-progress: false
 
 jobs:
   deploy:
@@ -30,10 +35,38 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f assets/well-water-sulfur-vancouver-island.webp
+          test -f index.html
+          test -f .htaccess
+          test -f sitemap.xml
+          test -f blog/index.html
+          test -f blog/greater-victoria-chloramine-water.html
           test -f blog/well-water-rotten-egg-smell-vancouver-island.html
+          test -f assets/well-water-sulfur-vancouver-island.webp
           test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
           test -n "$FTP_PASSWORD" || { echo 'Missing GREENGEEKS_FTP_PASSWORD secret'; exit 1; }
+
+      - name: Build production payload
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p _deploy
+          rsync -a \
+            --exclude '.git/' \
+            --exclude '.github/' \
+            --exclude 'docs/' \
+            --exclude '_deploy/' \
+            --exclude 'README*' \
+            --exclude 'LICENSE*' \
+            --exclude '.gitignore' \
+            --exclude 'assets/image-hotlinks.json' \
+            ./ _deploy/
+
+          echo 'Skipping zero-byte placeholder files rather than overwriting production with them:'
+          find _deploy -type f -empty -print || true
+          find _deploy -type f -empty -delete
+
+          echo "Production payload files: $(find _deploy -type f | wc -l)"
+          echo "Production payload bytes: $(du -sb _deploy | awk '{print $1}')"
 
       - name: Install lftp
         shell: bash
@@ -41,7 +74,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y lftp
 
-      - name: Deploy hero image and article
+      - name: Deploy full website
         shell: bash
         run: |
           set -euo pipefail
@@ -49,48 +82,82 @@ jobs:
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
           set cmd:fail-exit yes
           set net:max-retries 2
-          set net:timeout 20
+          set net:timeout 30
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
-          cd "$ROOT"
-          put -O assets assets/well-water-sulfur-vancouver-island.webp
-          put -O blog blog/well-water-rotten-egg-smell-vancouver-island.html
+          mirror -R --verbose --parallel=2 _deploy "$ROOT"
+          put -O "$ROOT" _deploy/.htaccess
           bye
           EOF
 
-      - name: Diagnose and verify live production
+      - name: Verify live production
         shell: bash
         run: |
           set -euo pipefail
-          ARTICLE="https://www.purewaterpros.ca/blog/well-water-rotten-egg-smell-vancouver-island.html?deploy-check=${GITHUB_SHA}"
-          HERO="https://www.purewaterpros.ca/assets/well-water-sulfur-vancouver-island.webp?deploy-check=${GITHUB_SHA}"
 
-          article_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-article.html -w '%{http_code}' "$ARTICLE")"
-          echo "ARTICLE_HTTP=$article_http"
-          echo "LIVE_ARTICLE_BYTES=$(wc -c < /tmp/live-article.html)"
-          echo "REPO_ARTICLE_BYTES=$(wc -c < blog/well-water-rotten-egg-smell-vancouver-island.html)"
-          echo "LIVE_ARTICLE_SHA256=$(sha256sum /tmp/live-article.html | awk '{print $1}')"
-          echo "REPO_ARTICLE_SHA256=$(sha256sum blog/well-water-rotten-egg-smell-vancouver-island.html | awk '{print $1}')"
-          echo 'Hero references visible in live HTML:'
-          grep -Eo 'https://cdn\.marblism\.com/[A-Za-z0-9_-]+\.webp|/assets/well-water-sulfur-vancouver-island\.webp' /tmp/live-article.html | sort -u || true
+          verify_exact() {
+            local label="$1"
+            local url="$2"
+            local repo_file="$3"
+            local tmp_file="$4"
+            local http live_sha repo_sha
 
-          hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-hero.webp -w '%{http_code}' "$HERO")"
-          echo "HERO_HTTP=$hero_http"
-          echo "LIVE_HERO_BYTES=$(wc -c < /tmp/live-hero.webp)"
-          file /tmp/live-hero.webp || true
+            http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o "$tmp_file" -w '%{http_code}' "$url")"
+            echo "$label HTTP=$http"
+            test "$http" = '200'
 
-          test "$article_http" = '200'
-          grep -Fq '/assets/well-water-sulfur-vancouver-island.webp' /tmp/live-article.html
-          ! grep -Fq 'cdn.marblism.com/l8kmBsdipVs.webp' /tmp/live-article.html
+            live_sha="$(sha256sum "$tmp_file" | awk '{print $1}')"
+            repo_sha="$(sha256sum "$repo_file" | awk '{print $1}')"
+            echo "$label LIVE_SHA256=$live_sha"
+            echo "$label REPO_SHA256=$repo_sha"
+            test "$live_sha" = "$repo_sha"
+          }
+
+          verify_exact \
+            'HOME' \
+            "https://www.purewaterpros.ca/?deploy-check=${GITHUB_SHA}" \
+            'index.html' \
+            '/tmp/live-home.html'
+
+          verify_exact \
+            'BLOG_INDEX' \
+            "https://www.purewaterpros.ca/blog/index.html?deploy-check=${GITHUB_SHA}" \
+            'blog/index.html' \
+            '/tmp/live-blog-index.html'
+
+          verify_exact \
+            'CHLORAMINE_ARTICLE' \
+            "https://www.purewaterpros.ca/blog/greater-victoria-chloramine-water.html?deploy-check=${GITHUB_SHA}" \
+            'blog/greater-victoria-chloramine-water.html' \
+            '/tmp/live-chloramine.html'
+
+          verify_exact \
+            'SULFUR_ARTICLE' \
+            "https://www.purewaterpros.ca/blog/well-water-rotten-egg-smell-vancouver-island.html?deploy-check=${GITHUB_SHA}" \
+            'blog/well-water-rotten-egg-smell-vancouver-island.html' \
+            '/tmp/live-sulfur.html'
+
+          verify_exact \
+            'SITEMAP' \
+            "https://www.purewaterpros.ca/sitemap.xml?deploy-check=${GITHUB_SHA}" \
+            'sitemap.xml' \
+            '/tmp/live-sitemap.xml'
+
+          hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-hero.webp -w '%{http_code}' "https://www.purewaterpros.ca/assets/well-water-sulfur-vancouver-island.webp?deploy-check=${GITHUB_SHA}")"
+          echo "SULFUR_HERO HTTP=$hero_http"
           test "$hero_http" = '200'
-          test -s /tmp/live-hero.webp
+          test "$(sha256sum /tmp/live-hero.webp | awk '{print $1}')" = "$(sha256sum assets/well-water-sulfur-vancouver-island.webp | awk '{print $1}')"
           file /tmp/live-hero.webp | grep -Fq 'Web/P image'
-          echo 'Live production verification passed.'
 
-      - name: Confirm deployed paths
+          grep -Fq '/assets/well-water-sulfur-vancouver-island.webp' /tmp/live-sulfur.html
+          ! grep -Fq 'cdn.marblism.com/l8kmBsdipVs.webp' /tmp/live-sulfur.html
+
+          echo 'Full-site production verification passed.'
+
+      - name: Deployment summary
         shell: bash
         run: |
-          echo 'Deployed and verified:'
-          echo '  /assets/well-water-sulfur-vancouver-island.webp'
-          echo '  /blog/well-water-rotten-egg-smell-vancouver-island.html'
+          echo 'Pure Water Pros production deployment completed successfully.'
+          echo 'GitHub main is now the deployment source for site files.'
+          echo 'Server-only files are not deleted by this workflow.'
