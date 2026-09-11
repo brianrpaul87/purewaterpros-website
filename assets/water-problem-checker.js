@@ -3,8 +3,18 @@
   core.src = '/assets/water-problem-checker-core.js?v=2';
   core.defer = true;
   core.addEventListener('load', () => {
+    const section = document.getElementById('field-experience');
     const cards = document.querySelectorAll('#field-experience .field-experience-card');
-    if (cards.length < 3) return;
+    if (!section || cards.length < 3) return;
+
+    const eyebrow = section.querySelector('.field-experience-intro .eyebrow');
+    const heading = section.querySelector('#field-experience-title');
+    const intro = section.querySelector('.field-experience-intro > p:not(.eyebrow)');
+    const note = section.querySelector('.field-experience-note');
+    if (eyebrow) eyebrow.textContent = 'Previous work';
+    if (heading) heading.textContent = 'A few pictures from previous water-treatment work.';
+    if (intro) intro.textContent = 'Examples of water-treatment systems installed and serviced before Pure Water Pros launched in British Columbia.';
+    if (note) note.textContent = 'Examples shown reflect prior field experience. Equipment brands shown do not imply dealer affiliation.';
 
     const style = document.createElement('style');
     style.textContent = '#field-experience .field-experience-card:first-child img{object-fit:cover!important;padding:0!important;background:#eaf3f6!important}';
