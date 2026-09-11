@@ -1,5 +1,6 @@
 name: Deploy sulfur article to GreenGeeks
 
+# Trigger marker: deployment credentials configured 2026-09-10
 on:
   workflow_dispatch:
   push:
