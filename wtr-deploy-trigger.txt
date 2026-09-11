@@ -1,0 +1,2 @@
+Where They Rest production deploy trigger.
+Latest source sync requested: 2026-09-11 Greater Victoria acquisition page verification fix.
