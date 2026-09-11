@@ -55,11 +55,18 @@ jobs:
             --exclude '.github/' \
             --exclude 'docs/' \
             --exclude '_deploy/' \
+            --exclude 'wheretheyrest/' \
+            --exclude 'wheretheyrest/**' \
             --exclude 'README*' \
             --exclude 'LICENSE*' \
             --exclude '.gitignore' \
             --exclude 'assets/image-hotlinks.json' \
             ./ _deploy/
+
+          if find _deploy -maxdepth 1 -type d -name 'wheretheyrest' | grep -q .; then
+            echo 'Safety stop: WhereTheyRest appeared in the Pure Water Pros deployment payload.'
+            exit 1
+          fi
 
           echo 'Skipping zero-byte placeholder files rather than overwriting production with them:'
           find _deploy -type f -empty -print || true
@@ -86,7 +93,7 @@ jobs:
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
-          mirror -R --verbose --parallel=2 _deploy "$ROOT"
+          mirror -R --verbose --parallel=2 --exclude-glob wheretheyrest --exclude-glob 'wheretheyrest/**' _deploy "$ROOT"
           put -O "$ROOT" _deploy/.htaccess
           bye
           EOF
@@ -159,5 +166,6 @@ jobs:
         shell: bash
         run: |
           echo 'Pure Water Pros production deployment completed successfully.'
-          echo 'GitHub main is now the deployment source for site files.'
-          echo 'Server-only files are not deleted by this workflow.'
+          echo 'GitHub main is now the deployment source for Pure Water Pros site files.'
+          echo 'The server-side wheretheyrest directory is explicitly excluded and must never be modified by this workflow.'
+          echo 'Other server-only files are not deleted by this workflow.'
