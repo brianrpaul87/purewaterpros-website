@@ -1,6 +1,5 @@
 name: Deploy sulfur article to GreenGeeks
 
-# Trigger marker: deployment credentials configured 2026-09-10
 on:
   workflow_dispatch:
   push:
@@ -18,7 +17,7 @@ jobs:
   deploy:
     runs-on: ubuntu-latest
     env:
-      FTP_HOST: ${{ secrets.GREENGEEKS_FTP_HOST }}
+      FTP_HOST: mtl203.greengeeks.net
       FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
       FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
       REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
@@ -33,7 +32,6 @@ jobs:
           set -euo pipefail
           test -f assets/well-water-sulfur-vancouver-island.webp
           test -f blog/well-water-rotten-egg-smell-vancouver-island.html
-          test -n "$FTP_HOST" || { echo 'Missing GREENGEEKS_FTP_HOST secret'; exit 1; }
           test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
           test -n "$FTP_PASSWORD" || { echo 'Missing GREENGEEKS_FTP_PASSWORD secret'; exit 1; }
 
