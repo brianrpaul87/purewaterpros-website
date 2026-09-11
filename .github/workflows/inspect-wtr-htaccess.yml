@@ -1,0 +1,44 @@
+name: Inspect Where They Rest htaccess
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - '.github/workflows/inspect-wtr-htaccess.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      FTP_HOST: mtl203.greengeeks.net
+      FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
+      REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
+    steps:
+      - name: Install lftp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+      - name: Read production htaccess
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${REMOTE_ROOT:-/}"
+          ROOT="${ROOT%/}"
+          TARGET="${ROOT}/wheretheyrest"
+          if [ -z "$ROOT" ]; then TARGET="/wheretheyrest"; fi
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          get "$TARGET/.htaccess" -o /tmp/wtr.htaccess
+          bye
+          EOF
+          echo '--- BEGIN PRODUCTION WTR .htaccess ---'
+          cat /tmp/wtr.htaccess
+          echo '--- END PRODUCTION WTR .htaccess ---'
