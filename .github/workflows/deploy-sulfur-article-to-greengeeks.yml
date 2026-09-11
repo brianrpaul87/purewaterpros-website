@@ -61,9 +61,26 @@ jobs:
           bye
           EOF
 
+      - name: Verify live article and hero
+        shell: bash
+        run: |
+          set -euo pipefail
+          ARTICLE="https://www.purewaterpros.ca/blog/well-water-rotten-egg-smell-vancouver-island.html?deploy-check=${GITHUB_SHA}"
+          HERO="https://www.purewaterpros.ca/assets/well-water-sulfur-vancouver-island.webp?deploy-check=${GITHUB_SHA}"
+          curl -fsSL --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' "$ARTICLE" -o /tmp/live-article.html
+          grep -Fq '/assets/well-water-sulfur-vancouver-island.webp' /tmp/live-article.html
+          if grep -Fq 'cdn.marblism.com/l8kmBsdipVs.webp' /tmp/live-article.html; then
+            echo 'Live article still references the Marblism hero.'
+            exit 1
+          fi
+          curl -fsSL --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' "$HERO" -o /tmp/live-hero.webp
+          test -s /tmp/live-hero.webp
+          file /tmp/live-hero.webp
+          echo 'Live production verification passed.'
+
       - name: Confirm deployed paths
         shell: bash
         run: |
-          echo 'Deployed:'
+          echo 'Deployed and verified:'
           echo '  /assets/well-water-sulfur-vancouver-island.webp'
           echo '  /blog/well-water-rotten-egg-smell-vancouver-island.html'
