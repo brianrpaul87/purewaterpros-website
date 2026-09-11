@@ -161,6 +161,7 @@
     .field-experience-card{margin:0;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 8px 22px rgba(8,36,59,.06)}
     .field-experience-card picture{display:block;background:#eaf3f6}
     .field-experience-card img{display:block;width:100%;height:220px;object-fit:cover;object-position:center}
+    .field-experience-card:first-child img{object-fit:contain;padding:8px;background:#f8fbfc}
     .field-experience-card figcaption{padding:15px 17px 17px}
     .field-experience-card strong{display:block;margin-bottom:4px;color:var(--navy);font-family:Manrope,sans-serif;font-size:16px}
     .field-experience-card span{display:block;color:var(--muted);font-size:15px;line-height:1.45}
@@ -184,11 +185,11 @@
       <div class="field-experience-grid">
         <figure class="field-experience-card">
           <picture>
-            <source media="(max-width:620px)" srcset="/images/gallery/_cache/Quick%20Change%20RO%20System_480.webp" type="image/webp">
-            <source srcset="/images/gallery/_cache/Quick%20Change%20RO%20System_800.webp 800w, /images/gallery/_cache/Quick%20Change%20RO%20System_1200.webp 1200w" sizes="(max-width:900px) 50vw, 33vw" type="image/webp">
-            <img src="/images/gallery/Quick%20Change%20RO%20System.jpg" alt="Prior field-work example of an under-sink reverse osmosis drinking-water system" loading="lazy" decoding="async">
+            <source media="(max-width:620px)" srcset="/images/gallery/_cache/6%20Stage%20Traditional%20RO%20System_480.webp" type="image/webp">
+            <source srcset="/images/gallery/_cache/6%20Stage%20Traditional%20RO%20System_800.webp 800w, /images/gallery/_cache/6%20Stage%20Traditional%20RO%20System_1200.webp 1200w" sizes="(max-width:900px) 50vw, 33vw" type="image/webp">
+            <img src="/images/gallery/6%20Stage%20Traditional%20RO%20System.jpg" alt="Prior field-work example of a traditional under-sink reverse osmosis drinking-water system" loading="lazy" decoding="async">
           </picture>
-          <figcaption><strong>Under-sink reverse osmosis</strong><span>Compact drinking-water RO equipment installed inside a kitchen cabinet.</span></figcaption>
+          <figcaption><strong>Traditional under-sink reverse osmosis</strong><span>Conventional multi-stage drinking-water RO system installed below the sink.</span></figcaption>
         </figure>
         <figure class="field-experience-card">
           <picture>
