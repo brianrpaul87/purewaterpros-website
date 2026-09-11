@@ -1,0 +1,49 @@
+name: Inspect WTR alternate asset
+
+on:
+  push:
+    branches:
+      - tmp/inspect-wtr-alt-asset
+    paths:
+      - '.github/workflows/inspect-wtr-alt-asset.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    env:
+      FTP_HOST: mtl203.greengeeks.net
+      FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
+      REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
+    steps:
+      - name: Install lftp
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq lftp
+      - name: Download alternate WTR asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${REMOTE_ROOT:-/}"
+          ROOT="${ROOT%/}"
+          TARGET="${ROOT}/wheretheyrest/assets"
+          if [ -z "$ROOT" ]; then TARGET="/wheretheyrest/assets"; fi
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
+          set cmd:fail-exit yes
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          get "$TARGET/grave-memorial-cleaning-before-after.jpg" -o /tmp/grave-memorial-cleaning-before-after.jpg
+          bye
+          EOF
+          file /tmp/grave-memorial-cleaning-before-after.jpg
+      - name: Upload asset artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: wtr-alt-asset
+          path: /tmp/grave-memorial-cleaning-before-after.jpg
+          if-no-files-found: error
