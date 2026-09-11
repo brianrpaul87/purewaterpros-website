@@ -59,21 +59,33 @@ jobs:
           bye
           EOF
 
-      - name: Verify live article and hero
+      - name: Diagnose and verify live production
         shell: bash
         run: |
           set -euo pipefail
           ARTICLE="https://www.purewaterpros.ca/blog/well-water-rotten-egg-smell-vancouver-island.html?deploy-check=${GITHUB_SHA}"
           HERO="https://www.purewaterpros.ca/assets/well-water-sulfur-vancouver-island.webp?deploy-check=${GITHUB_SHA}"
-          curl -fsSL --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' "$ARTICLE" -o /tmp/live-article.html
+
+          article_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-article.html -w '%{http_code}' "$ARTICLE")"
+          echo "ARTICLE_HTTP=$article_http"
+          echo "LIVE_ARTICLE_BYTES=$(wc -c < /tmp/live-article.html)"
+          echo "REPO_ARTICLE_BYTES=$(wc -c < blog/well-water-rotten-egg-smell-vancouver-island.html)"
+          echo "LIVE_ARTICLE_SHA256=$(sha256sum /tmp/live-article.html | awk '{print $1}')"
+          echo "REPO_ARTICLE_SHA256=$(sha256sum blog/well-water-rotten-egg-smell-vancouver-island.html | awk '{print $1}')"
+          echo 'Hero references visible in live HTML:'
+          grep -Eo 'https://cdn\.marblism\.com/[A-Za-z0-9_-]+\.webp|/assets/well-water-sulfur-vancouver-island\.webp' /tmp/live-article.html | sort -u || true
+
+          hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-hero.webp -w '%{http_code}' "$HERO")"
+          echo "HERO_HTTP=$hero_http"
+          echo "LIVE_HERO_BYTES=$(wc -c < /tmp/live-hero.webp)"
+          file /tmp/live-hero.webp || true
+
+          test "$article_http" = '200'
           grep -Fq '/assets/well-water-sulfur-vancouver-island.webp' /tmp/live-article.html
-          if grep -Fq 'cdn.marblism.com/l8kmBsdipVs.webp' /tmp/live-article.html; then
-            echo 'Live article still references the Marblism hero.'
-            exit 1
-          fi
-          curl -fsSL --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' "$HERO" -o /tmp/live-hero.webp
+          ! grep -Fq 'cdn.marblism.com/l8kmBsdipVs.webp' /tmp/live-article.html
+          test "$hero_http" = '200'
           test -s /tmp/live-hero.webp
-          file /tmp/live-hero.webp
+          file /tmp/live-hero.webp | grep -Fq 'Web/P image'
           echo 'Live production verification passed.'
 
       - name: Confirm deployed paths
