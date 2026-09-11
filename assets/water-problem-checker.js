@@ -146,3 +146,70 @@
     form.querySelector("input")?.focus();
   });
 })();
+
+(() => {
+  const processSection = document.getElementById("process");
+  const aboutSection = document.getElementById("about");
+  if (!processSection || !aboutSection || document.getElementById("field-experience")) return;
+
+  const style = document.createElement("style");
+  style.textContent = `
+    .field-experience-section{padding:72px 0;background:#f5f9fb}
+    .field-experience-intro{max-width:760px;margin-bottom:26px}
+    .field-experience-intro>p:not(.eyebrow){margin-bottom:0;color:var(--muted);font-size:17px}
+    .field-experience-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:18px}
+    .field-experience-card{margin:0;overflow:hidden;border:1px solid var(--line);border-radius:14px;background:#fff;box-shadow:0 8px 22px rgba(8,36,59,.06)}
+    .field-experience-card picture{display:block;background:#eaf3f6}
+    .field-experience-card img{display:block;width:100%;height:220px;object-fit:cover;object-position:center}
+    .field-experience-card figcaption{padding:15px 17px 17px}
+    .field-experience-card strong{display:block;margin-bottom:4px;color:var(--navy);font-family:Manrope,sans-serif;font-size:16px}
+    .field-experience-card span{display:block;color:var(--muted);font-size:15px;line-height:1.45}
+    .field-experience-note{max-width:900px;margin:18px 0 0;color:var(--muted);font-size:13px}
+    @media(max-width:900px){.field-experience-grid{grid-template-columns:1fr 1fr}.field-experience-card:last-child{grid-column:1/-1;max-width:520px}}
+    @media(max-width:620px){.field-experience-section{padding:58px 0}.field-experience-grid{grid-template-columns:1fr}.field-experience-card:last-child{grid-column:auto;max-width:none}.field-experience-card img{height:215px}}
+  `;
+  document.head.appendChild(style);
+
+  const section = document.createElement("section");
+  section.className = "field-experience-section";
+  section.id = "field-experience";
+  section.setAttribute("aria-labelledby", "field-experience-title");
+  section.innerHTML = `
+    <div class="shell">
+      <div class="field-experience-intro">
+        <p class="eyebrow">Field experience</p>
+        <h2 id="field-experience-title">A few examples from prior hands-on work.</h2>
+        <p>These are examples from Brian Paul’s earlier water-treatment field work, before Pure Water Pros launched in British Columbia.</p>
+      </div>
+      <div class="field-experience-grid">
+        <figure class="field-experience-card">
+          <picture>
+            <source media="(max-width:620px)" srcset="/images/gallery/_cache/Quick%20Change%20RO%20System_480.webp" type="image/webp">
+            <source srcset="/images/gallery/_cache/Quick%20Change%20RO%20System_800.webp 800w, /images/gallery/_cache/Quick%20Change%20RO%20System_1200.webp 1200w" sizes="(max-width:900px) 50vw, 33vw" type="image/webp">
+            <img src="/images/gallery/Quick%20Change%20RO%20System.jpg" alt="Prior field-work example of an under-sink reverse osmosis drinking-water system" loading="lazy" decoding="async">
+          </picture>
+          <figcaption><strong>Under-sink reverse osmosis</strong><span>Compact drinking-water RO equipment installed inside a kitchen cabinet.</span></figcaption>
+        </figure>
+        <figure class="field-experience-card">
+          <picture>
+            <source media="(max-width:620px)" srcset="/images/gallery/_cache/UV%20Dynamics%20Duplex_480.webp" type="image/webp">
+            <source srcset="/images/gallery/_cache/UV%20Dynamics%20Duplex_800.webp 800w, /images/gallery/_cache/UV%20Dynamics%20Duplex_1200.webp 1200w" sizes="(max-width:900px) 50vw, 33vw" type="image/webp">
+            <img src="/images/gallery/UV%20Dynamics%20Duplex.jpg" alt="Prior field-work example of UV disinfection with dual cartridge filtration" loading="lazy" decoding="async">
+          </picture>
+          <figcaption><strong>UV + cartridge filtration</strong><span>UV disinfection paired with dual cartridge housings for pretreatment and service access.</span></figcaption>
+        </figure>
+        <figure class="field-experience-card">
+          <picture>
+            <source media="(max-width:620px)" srcset="/images/gallery/_cache/New%20Viqua%20VH200-F10%20UV%20System%20with%20Water%20Softener_480.webp" type="image/webp">
+            <source srcset="/images/gallery/_cache/New%20Viqua%20VH200-F10%20UV%20System%20with%20Water%20Softener_800.webp 800w, /images/gallery/_cache/New%20Viqua%20VH200-F10%20UV%20System%20with%20Water%20Softener_1200.webp 1200w" sizes="(max-width:900px) 100vw, 33vw" type="image/webp">
+            <img src="/images/gallery/New%20Viqua%20VH200-F10%20UV%20System%20with%20Water%20Softener.jpg" alt="Prior field-work example of a residential water softener and UV disinfection system" loading="lazy" decoding="async">
+          </picture>
+          <figcaption><strong>Softener + UV treatment</strong><span>Residential softener and UV equipment installed together as part of a whole-home treatment setup.</span></figcaption>
+        </figure>
+      </div>
+      <p class="field-experience-note">Shown as prior field experience, not as current Pure Water Pros project photos. Equipment brands shown do not imply dealer affiliation.</p>
+    </div>
+  `;
+
+  aboutSection.parentNode.insertBefore(section, aboutSection);
+})();
