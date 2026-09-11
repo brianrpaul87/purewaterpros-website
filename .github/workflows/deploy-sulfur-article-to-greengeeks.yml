@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          ROOT="${REMOTE_ROOT:-/public_html}"
+          ROOT="${REMOTE_ROOT:-/}"
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
           set cmd:fail-exit yes
           set net:max-retries 2
