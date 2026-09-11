@@ -1,0 +1,52 @@
+name: Import approved external asset
+
+on:
+  push:
+    paths:
+      - '.github/workflows/import-external-asset.yml'
+  workflow_dispatch:
+    inputs:
+      source_url:
+        description: 'HTTPS URL of the approved asset to import'
+        required: true
+        type: string
+      destination:
+        description: 'Repository path for the imported asset'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+jobs:
+  import-asset:
+    runs-on: ubuntu-latest
+    env:
+      SOURCE_URL: ${{ github.event.inputs.source_url || 'https://cdn.marblism.com/l8kmBsdipVs.webp' }}
+      DESTINATION: ${{ github.event.inputs.destination || 'assets/well-water-sulfur-vancouver-island.webp' }}
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Download approved asset
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p "$(dirname "$DESTINATION")"
+          curl --fail --location --silent --show-error "$SOURCE_URL" --output "$DESTINATION"
+          test -s "$DESTINATION"
+          file "$DESTINATION"
+
+      - name: Commit imported asset if changed
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- "$DESTINATION" && git ls-files --error-unmatch "$DESTINATION" >/dev/null 2>&1; then
+            echo 'Asset already current; nothing to commit.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add "$DESTINATION"
+          git commit -m "Self-host approved external asset"
+          git push
