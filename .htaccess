@@ -12,6 +12,16 @@ RewriteCond %{HTTPS} !=on [OR]
 RewriteCond %{HTTP_HOST} !^www\.purewaterpros\.ca$ [NC]
 RewriteRule ^ https://www.purewaterpros.ca%{REQUEST_URI} [R=301,L]
 
+# Temporary compatibility redirects for the field-experience cards.
+# The first uploaded WebP copies were corrupted; point those public URLs at
+# existing verified real field photos already stored in the legacy gallery.
+RewriteRule ^assets/field-experience/uv-prefiltration-basement-install\.webp$ /images/gallery/Standalone%20Viqua%20VH200%20UV%20System.jpg [R=302,L,NE]
+RewriteRule ^assets/field-experience/uv-prefiltration-clean-install\.webp$ /images/gallery/UV%20Dynamics%20Duplex.jpg [R=302,L,NE]
+RewriteRule ^assets/field-experience/uv-softener-treatment-room\.webp$ /images/gallery/New%20Viqua%20VH200-F10%20UV%20System%20with%20Water%20Softener.jpg [R=302,L,NE]
+RewriteRule ^assets/field-experience/under-sink-ro-compact-install\.webp$ /images/gallery/Quick%20Change%20RO%20System.jpg [R=302,L,NE]
+RewriteRule ^assets/field-experience/under-sink-ro-drinking-water\.webp$ /images/gallery/6%20Stage%20Traditional%20RO%20System.jpg [R=302,L,NE]
+RewriteRule ^assets/field-experience/under-sink-ro-watts-system\.webp$ /images/gallery/Quick%20Change%20RO%20System.jpg [R=302,L,NE]
+
 # Do not expose /index.html as a second homepage URL.
 RewriteCond %{THE_REQUEST} \s/+index\.html(?:[\s?]) [NC]
 RewriteRule ^index\.html$ https://www.purewaterpros.ca/ [R=301,L]
