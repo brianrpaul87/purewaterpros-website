@@ -36,19 +36,22 @@ jobs:
           ref: main
           path: wtr-source
 
-      - name: Validate conversion files
+      - name: Validate public trust bundle
         shell: bash
         run: |
           set -euo pipefail
-          test -f wtr-source/index.html
-          test -f wtr-source/script.js
+          for file in index.html script.js trust.css privacy.html terms.html sitemap.xml; do
+            test -f "wtr-source/$file"
+          done
           test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
           test -n "$FTP_PASSWORD" || { echo 'Missing GREENGEEKS_FTP_PASSWORD secret'; exit 1; }
           node --check wtr-source/script.js
-          grep -Fq 'Care options &amp; starting prices' wtr-source/index.html
+          grep -Fq 'G-0Z06XS20YT' wtr-source/index.html
+          grep -Fq 'About Where They Rest' wtr-source/index.html
           grep -Fq 'From $129 CAD' wtr-source/index.html
           grep -Fq 'Starting in Greater Victoria' wtr-source/index.html
-          grep -Fq 'Now accepting memorial care requests' wtr-source/index.html
+          grep -Fq 'Privacy Policy' wtr-source/privacy.html
+          grep -Fq 'Terms of Service' wtr-source/terms.html
           ! grep -Fq 'Where They Rest is in preliminary development' wtr-source/index.html
           ! grep -Fq 'Authorized Memorial Steward' wtr-source/index.html
 
@@ -58,7 +61,7 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y lftp
 
-      - name: Deploy conversion files only
+      - name: Deploy public trust bundle only
         shell: bash
         run: |
           set -euo pipefail
@@ -67,7 +70,7 @@ jobs:
           TARGET="${ROOT}/wheretheyrest"
           if [ -z "$ROOT" ]; then TARGET="/wheretheyrest"; fi
 
-          echo "Deploying only index.html and script.js to ${TARGET}"
+          echo "Deploying public trust bundle to ${TARGET}"
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
           set cmd:fail-exit yes
           set net:max-retries 2
@@ -77,6 +80,10 @@ jobs:
           set ssl:verify-certificate yes
           put -O "$TARGET" wtr-source/index.html
           put -O "$TARGET" wtr-source/script.js
+          put -O "$TARGET" wtr-source/trust.css
+          put -O "$TARGET" wtr-source/privacy.html
+          put -O "$TARGET" wtr-source/terms.html
+          put -O "$TARGET" wtr-source/sitemap.xml
           bye
           EOF
 
@@ -91,11 +98,9 @@ jobs:
             local repo_file="$3"
             local tmp_file="$4"
             local http live_sha repo_sha
-
             http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o "$tmp_file" -w '%{http_code}' "$url")"
             echo "$label HTTP=$http"
             test "$http" = '200'
-
             live_sha="$(sha256sum "$tmp_file" | awk '{print $1}')"
             repo_sha="$(sha256sum "$repo_file" | awk '{print $1}')"
             echo "$label LIVE_SHA256=$live_sha"
@@ -103,32 +108,33 @@ jobs:
             test "$live_sha" = "$repo_sha"
           }
 
-          verify_exact \
-            'WTR_HOME' \
-            "https://wheretheyrest.ca/?deploy-check=${GITHUB_SHA}" \
-            'wtr-source/index.html' \
-            '/tmp/live-wtr-index.html'
+          verify_exact 'WTR_HOME' "https://wheretheyrest.ca/?deploy-check=${GITHUB_SHA}" 'wtr-source/index.html' '/tmp/live-wtr-index.html'
+          verify_exact 'WTR_SCRIPT' "https://wheretheyrest.ca/script.js?deploy-check=${GITHUB_SHA}" 'wtr-source/script.js' '/tmp/live-wtr-script.js'
+          verify_exact 'WTR_TRUST_CSS' "https://wheretheyrest.ca/trust.css?deploy-check=${GITHUB_SHA}" 'wtr-source/trust.css' '/tmp/live-wtr-trust.css'
+          verify_exact 'WTR_PRIVACY' "https://wheretheyrest.ca/privacy.html?deploy-check=${GITHUB_SHA}" 'wtr-source/privacy.html' '/tmp/live-wtr-privacy.html'
+          verify_exact 'WTR_TERMS' "https://wheretheyrest.ca/terms.html?deploy-check=${GITHUB_SHA}" 'wtr-source/terms.html' '/tmp/live-wtr-terms.html'
+          verify_exact 'WTR_SITEMAP' "https://wheretheyrest.ca/sitemap.xml?deploy-check=${GITHUB_SHA}" 'wtr-source/sitemap.xml' '/tmp/live-wtr-sitemap.xml'
 
-          verify_exact \
-            'WTR_SCRIPT' \
-            "https://wheretheyrest.ca/script.js?deploy-check=${GITHUB_SHA}" \
-            'wtr-source/script.js' \
-            '/tmp/live-wtr-script.js'
-
+          grep -Fq 'G-0Z06XS20YT' /tmp/live-wtr-index.html
+          grep -Fq 'About Where They Rest' /tmp/live-wtr-index.html
           grep -Fq 'From $129 CAD' /tmp/live-wtr-index.html
-          grep -Fq 'Starting in Greater Victoria' /tmp/live-wtr-index.html
+          grep -Fq 'Privacy Policy' /tmp/live-wtr-privacy.html
+          grep -Fq 'Terms of Service' /tmp/live-wtr-terms.html
           ! grep -Fq 'Where They Rest is in preliminary development' /tmp/live-wtr-index.html
           ! grep -Fq 'Authorized Memorial Steward' /tmp/live-wtr-index.html
+
+          hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -o /tmp/wtr-hero.jpg -w '%{http_code}' 'https://wheretheyrest.ca/assets/grave-memorial-cleaning-before-after.jpg')"
+          echo "WTR_HERO HTTP=$hero_http"
+          test "$hero_http" = '200'
 
           api_http="$(curl -sS -o /tmp/wtr-api-check.txt -w '%{http_code}' 'https://wheretheyrest.ca/api/submit.php')"
           echo "WTR_API GET HTTP=$api_http"
           test "$api_http" = '405'
 
-          echo 'Where They Rest conversion deployment verification passed.'
+          echo 'Where They Rest trust-phase deployment verification passed.'
 
       - name: Deployment summary
         shell: bash
         run: |
-          echo 'Where They Rest conversion files deployed successfully.'
-          echo 'Only /wheretheyrest/index.html and /wheretheyrest/script.js were overwritten.'
+          echo 'Where They Rest trust-phase public files deployed successfully.'
           echo 'Existing API, vendor files, assets, .htaccess, and private mail configuration were not modified.'
