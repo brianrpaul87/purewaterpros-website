@@ -1,0 +1,135 @@
+name: Deploy Where They Rest to GreenGeeks
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/deploy-wheretheyrest-to-greengeeks.yml'
+      - 'wtr-deploy-trigger.txt'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: where-they-rest-production
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    env:
+      FTP_HOST: mtl203.greengeeks.net
+      FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
+      FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
+      REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
+
+    steps:
+      - name: Check out deployment repository
+        uses: actions/checkout@v4
+
+      - name: Check out Where They Rest source
+        uses: actions/checkout@v4
+        with:
+          repository: brianrpaul87/wheretheyrest
+          ref: main
+          path: wtr-source
+
+      - name: Validate conversion files
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f wtr-source/index.html
+          test -f wtr-source/script.js
+          test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
+          test -n "$FTP_PASSWORD" || { echo 'Missing GREENGEEKS_FTP_PASSWORD secret'; exit 1; }
+          node --check wtr-source/script.js
+          grep -Fq 'Care options &amp; starting prices' wtr-source/index.html
+          grep -Fq 'From $129 CAD' wtr-source/index.html
+          grep -Fq 'Starting in Greater Victoria' wtr-source/index.html
+          grep -Fq 'Now accepting memorial care requests' wtr-source/index.html
+          ! grep -Fq 'Where They Rest is in preliminary development' wtr-source/index.html
+          ! grep -Fq 'Authorized Memorial Steward' wtr-source/index.html
+
+      - name: Install lftp
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y lftp
+
+      - name: Deploy conversion files only
+        shell: bash
+        run: |
+          set -euo pipefail
+          ROOT="${REMOTE_ROOT:-/}"
+          ROOT="${ROOT%/}"
+          TARGET="${ROOT}/wheretheyrest"
+          if [ -z "$ROOT" ]; then TARGET="/wheretheyrest"; fi
+
+          echo "Deploying only index.html and script.js to ${TARGET}"
+          lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
+          set cmd:fail-exit yes
+          set net:max-retries 2
+          set net:timeout 30
+          set ftp:ssl-force true
+          set ftp:ssl-protect-data true
+          set ssl:verify-certificate yes
+          mkdir -p "$TARGET"
+          put -O "$TARGET" wtr-source/index.html
+          put -O "$TARGET" wtr-source/script.js
+          bye
+          EOF
+
+      - name: Verify live Where They Rest
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          verify_exact() {
+            local label="$1"
+            local url="$2"
+            local repo_file="$3"
+            local tmp_file="$4"
+            local http live_sha repo_sha
+
+            http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o "$tmp_file" -w '%{http_code}' "$url")"
+            echo "$label HTTP=$http"
+            test "$http" = '200'
+
+            live_sha="$(sha256sum "$tmp_file" | awk '{print $1}')"
+            repo_sha="$(sha256sum "$repo_file" | awk '{print $1}')"
+            echo "$label LIVE_SHA256=$live_sha"
+            echo "$label REPO_SHA256=$repo_sha"
+            test "$live_sha" = "$repo_sha"
+          }
+
+          verify_exact \
+            'WTR_HOME' \
+            "https://wheretheyrest.ca/?deploy-check=${GITHUB_SHA}" \
+            'wtr-source/index.html' \
+            '/tmp/live-wtr-index.html'
+
+          verify_exact \
+            'WTR_SCRIPT' \
+            "https://wheretheyrest.ca/script.js?deploy-check=${GITHUB_SHA}" \
+            'wtr-source/script.js' \
+            '/tmp/live-wtr-script.js'
+
+          grep -Fq 'From $129 CAD' /tmp/live-wtr-index.html
+          grep -Fq 'Starting in Greater Victoria' /tmp/live-wtr-index.html
+          ! grep -Fq 'Where They Rest is in preliminary development' /tmp/live-wtr-index.html
+          ! grep -Fq 'Authorized Memorial Steward' /tmp/live-wtr-index.html
+
+          api_http="$(curl -sS -o /tmp/wtr-api-check.txt -w '%{http_code}' 'https://wheretheyrest.ca/api/submit.php')"
+          echo "WTR_API GET HTTP=$api_http"
+          test "$api_http" = '405'
+
+          echo 'Where They Rest conversion deployment verification passed.'
+
+      - name: Deployment summary
+        shell: bash
+        run: |
+          echo 'Where They Rest conversion files deployed successfully.'
+          echo 'Only /wheretheyrest/index.html and /wheretheyrest/script.js were overwritten.'
+          echo 'Existing API, vendor files, assets, .htaccess, and private mail configuration were not modified.'
