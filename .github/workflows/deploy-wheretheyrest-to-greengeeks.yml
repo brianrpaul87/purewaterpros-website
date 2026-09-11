@@ -36,11 +36,11 @@ jobs:
           ref: main
           path: wtr-source
 
-      - name: Validate public trust bundle
+      - name: Validate public launch bundle
         shell: bash
         run: |
           set -euo pipefail
-          for file in index.html script.js trust.css privacy.html terms.html sitemap.xml .htaccess; do
+          for file in index.html script.js trust.css privacy.html terms.html grave-cleaning-memorial-care-victoria-bc.html sitemap.xml .htaccess; do
             test -f "wtr-source/$file"
           done
           test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
@@ -52,6 +52,8 @@ jobs:
           grep -Fq 'Starting in Greater Victoria' wtr-source/index.html
           grep -Fq 'Privacy Policy' wtr-source/privacy.html
           grep -Fq 'Terms of Service' wtr-source/terms.html
+          grep -Fq 'Grave cleaning and memorial care in Victoria, BC' wtr-source/grave-cleaning-memorial-care-victoria-bc.html
+          grep -Fq 'grave-cleaning-memorial-care-victoria-bc.html' wtr-source/sitemap.xml
           grep -Fq 'CacheDisable public /' wtr-source/.htaccess
           grep -Fq 'RewriteRule ^(?:config|tests|vendor|wheretheyrest)' wtr-source/.htaccess
           grep -Fq 'PACKAGE-SHA256SUMS' wtr-source/.htaccess
@@ -89,7 +91,7 @@ jobs:
           grep -Fq 'Referrer-Policy' /tmp/current-wtr-htaccess
           echo 'Existing production protections confirmed.'
 
-      - name: Deploy public trust bundle and cache rules
+      - name: Deploy public launch bundle
         shell: bash
         run: |
           set -euo pipefail
@@ -98,7 +100,7 @@ jobs:
           TARGET="${ROOT}/wheretheyrest"
           if [ -z "$ROOT" ]; then TARGET="/wheretheyrest"; fi
 
-          echo "Deploying Where They Rest trust bundle to ${TARGET}"
+          echo "Deploying Where They Rest launch bundle to ${TARGET}"
           lftp -u "$FTP_USERNAME","$FTP_PASSWORD" "ftp://$FTP_HOST" <<EOF
           set cmd:fail-exit yes
           set net:max-retries 2
@@ -111,6 +113,7 @@ jobs:
           put -O "$TARGET" wtr-source/trust.css
           put -O "$TARGET" wtr-source/privacy.html
           put -O "$TARGET" wtr-source/terms.html
+          put -O "$TARGET" wtr-source/grave-cleaning-memorial-care-victoria-bc.html
           put -O "$TARGET" wtr-source/sitemap.xml
           put -O "$TARGET" wtr-source/.htaccess
           bye
@@ -135,11 +138,12 @@ jobs:
           get "$TARGET/trust.css" -o /tmp/wtr-remote/trust.css
           get "$TARGET/privacy.html" -o /tmp/wtr-remote/privacy.html
           get "$TARGET/terms.html" -o /tmp/wtr-remote/terms.html
+          get "$TARGET/grave-cleaning-memorial-care-victoria-bc.html" -o /tmp/wtr-remote/grave-cleaning-memorial-care-victoria-bc.html
           get "$TARGET/sitemap.xml" -o /tmp/wtr-remote/sitemap.xml
           get "$TARGET/.htaccess" -o /tmp/wtr-remote/.htaccess
           bye
           EOF
-          for file in index.html script.js trust.css privacy.html terms.html sitemap.xml .htaccess; do
+          for file in index.html script.js trust.css privacy.html terms.html grave-cleaning-memorial-care-victoria-bc.html sitemap.xml .htaccess; do
             repo_sha="$(sha256sum "wtr-source/$file" | awk '{print $1}')"
             remote_sha="$(sha256sum "/tmp/wtr-remote/$file" | awk '{print $1}')"
             echo "$file REPO=$repo_sha REMOTE=$remote_sha"
@@ -169,6 +173,7 @@ jobs:
           fetch_live 'WTR_TRUST_CSS' "https://wheretheyrest.ca/trust.css?deploy-check=${stamp}" '/tmp/live-wtr-trust.css'
           fetch_live 'WTR_PRIVACY' "https://wheretheyrest.ca/privacy.html?deploy-check=${stamp}" '/tmp/live-wtr-privacy.html'
           fetch_live 'WTR_TERMS' "https://wheretheyrest.ca/terms.html?deploy-check=${stamp}" '/tmp/live-wtr-terms.html'
+          fetch_live 'WTR_VICTORIA_PAGE' "https://wheretheyrest.ca/grave-cleaning-memorial-care-victoria-bc.html?deploy-check=${stamp}" '/tmp/live-wtr-victoria.html'
 
           grep -Fq 'G-0Z06XS20YT' /tmp/live-wtr-index.html
           grep -Fq 'About Where They Rest' /tmp/live-wtr-index.html
@@ -176,6 +181,8 @@ jobs:
           grep -Fq 'Starting in Greater Victoria' /tmp/live-wtr-index.html
           grep -Fq 'Privacy Policy' /tmp/live-wtr-privacy.html
           grep -Fq 'Terms of Service' /tmp/live-wtr-terms.html
+          grep -Fq 'Grave cleaning and memorial care in Victoria, BC' /tmp/live-wtr-victoria.html
+          grep -Fq 'From $199 CAD' /tmp/live-wtr-victoria.html
           ! grep -Fq 'Where They Rest is in preliminary development' /tmp/live-wtr-index.html
           ! grep -Fq 'Authorized Memorial Steward' /tmp/live-wtr-index.html
 
@@ -187,11 +194,11 @@ jobs:
           echo "WTR_API GET HTTP=$api_http"
           test "$api_http" = '405'
 
-          echo 'Where They Rest trust-phase live verification passed.'
+          echo 'Where They Rest public launch verification passed.'
 
       - name: Deployment summary
         shell: bash
         run: |
-          echo 'Where They Rest trust-phase deployment completed successfully.'
-          echo 'Production security rules were preserved and LiteSpeed page caching was disabled for this directory.'
+          echo 'Where They Rest public launch bundle deployed successfully.'
+          echo 'Production security rules and cache controls remain active.'
           echo 'Existing API, vendor files, assets, and private mail configuration were not modified.'
