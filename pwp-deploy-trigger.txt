@@ -1,1 +1,2 @@
 Pure Water Pros deploy trigger. Do not use wtr-deploy-trigger.txt for PWP deploys.
+Last trigger: 2026-09-11 23:00 Pacific — byte-verified RO hero.
