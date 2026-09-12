@@ -33,7 +33,6 @@
 .article-hero-image img {
   width: 100%;
   height: auto;
-  aspect-ratio: auto;
   object-fit: contain;
   border-radius: 28px;
   box-shadow: var(--shadow);
@@ -148,3 +147,4 @@
   .footer-grid { grid-template-columns: 1fr; }
   .footer-bottom { flex-direction: column; }
 }
+/* pwp-hero-asset-refresh */
