@@ -32,8 +32,9 @@
 .article-hero-image { margin: 0; }
 .article-hero-image img {
   width: 100%;
-  aspect-ratio: 16 / 12;
-  object-fit: cover;
+  height: auto;
+  aspect-ratio: auto;
+  object-fit: contain;
   border-radius: 28px;
   box-shadow: var(--shadow);
 }
