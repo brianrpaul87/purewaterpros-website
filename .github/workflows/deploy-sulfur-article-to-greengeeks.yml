@@ -40,7 +40,9 @@ jobs:
           test -f sitemap.xml
           test -f blog/index.html
           test -f blog/greater-victoria-chloramine-water.html
+          test -f blog/reverse-osmosis-victoria-do-you-need-ro.html
           test -f blog/well-water-rotten-egg-smell-vancouver-island.html
+          test -f assets/blog/ro-components-hero-photo.webp
           test -f assets/well-water-sulfur-vancouver-island.webp
           test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
           test -n "$FTP_PASSWORD" || { echo 'Missing GREENGEEKS_FTP_PASSWORD secret'; exit 1; }
@@ -140,6 +142,12 @@ jobs:
             '/tmp/live-chloramine.html'
 
           verify_exact \
+            'RO_ARTICLE' \
+            "https://www.purewaterpros.ca/blog/reverse-osmosis-victoria-do-you-need-ro.html?deploy-check=${GITHUB_SHA}" \
+            'blog/reverse-osmosis-victoria-do-you-need-ro.html' \
+            '/tmp/live-ro-article.html'
+
+          verify_exact \
             'SULFUR_ARTICLE' \
             "https://www.purewaterpros.ca/blog/well-water-rotten-egg-smell-vancouver-island.html?deploy-check=${GITHUB_SHA}" \
             'blog/well-water-rotten-egg-smell-vancouver-island.html' \
@@ -151,11 +159,22 @@ jobs:
             'sitemap.xml' \
             '/tmp/live-sitemap.xml'
 
-          hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-hero.webp -w '%{http_code}' "https://www.purewaterpros.ca/assets/well-water-sulfur-vancouver-island.webp?deploy-check=${GITHUB_SHA}")"
-          echo "SULFUR_HERO HTTP=$hero_http"
-          test "$hero_http" = '200'
-          test "$(sha256sum /tmp/live-hero.webp | awk '{print $1}')" = "$(sha256sum assets/well-water-sulfur-vancouver-island.webp | awk '{print $1}')"
-          file /tmp/live-hero.webp | grep -Fq 'Web/P image'
+          ro_hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-ro-hero.webp -w '%{http_code}' "https://www.purewaterpros.ca/assets/blog/ro-components-hero-photo.webp?deploy-check=${GITHUB_SHA}")"
+          echo "RO_HERO HTTP=$ro_hero_http"
+          test "$ro_hero_http" = '200'
+          ro_hero_live_sha="$(sha256sum /tmp/live-ro-hero.webp | awk '{print $1}')"
+          ro_hero_repo_sha="$(sha256sum assets/blog/ro-components-hero-photo.webp | awk '{print $1}')"
+          echo "RO_HERO LIVE_SHA256=$ro_hero_live_sha"
+          echo "RO_HERO REPO_SHA256=$ro_hero_repo_sha"
+          test "$ro_hero_live_sha" = "$ro_hero_repo_sha"
+          file /tmp/live-ro-hero.webp | grep -Fq 'Web/P image'
+          grep -Fq '/assets/blog/ro-components-hero-photo.webp' /tmp/live-ro-article.html
+
+          sulfur_hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-sulfur-hero.webp -w '%{http_code}' "https://www.purewaterpros.ca/assets/well-water-sulfur-vancouver-island.webp?deploy-check=${GITHUB_SHA}")"
+          echo "SULFUR_HERO HTTP=$sulfur_hero_http"
+          test "$sulfur_hero_http" = '200'
+          test "$(sha256sum /tmp/live-sulfur-hero.webp | awk '{print $1}')" = "$(sha256sum assets/well-water-sulfur-vancouver-island.webp | awk '{print $1}')"
+          file /tmp/live-sulfur-hero.webp | grep -Fq 'Web/P image'
 
           grep -Fq '/assets/well-water-sulfur-vancouver-island.webp' /tmp/live-sulfur.html
           ! grep -Fq 'cdn.marblism.com/l8kmBsdipVs.webp' /tmp/live-sulfur.html
