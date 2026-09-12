@@ -3,6 +3,13 @@
   core.src = '/assets/water-problem-checker-core.js?v=2';
   core.defer = true;
   core.addEventListener('load', () => {
+    // Replace the old generated filtration image with a real field-work photo.
+    // The previous service-filtration asset showed unrealistic plumbing and is no longer used here.
+    const filtrationPicture = document.querySelector('a[href="/water-filtration-victoria.html"] .service-image-wrap');
+    if (filtrationPicture) {
+      filtrationPicture.innerHTML = '<img src="/assets/field-experience/uv-prefilter.webp" alt="Previous field-work example of residential cartridge prefiltration on a whole-home treatment line" loading="lazy" decoding="async">';
+    }
+
     const section = document.getElementById('field-experience');
     const cards = document.querySelectorAll('#field-experience .field-experience-card');
     if (!section || cards.length < 3) return;
