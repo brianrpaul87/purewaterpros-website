@@ -26,6 +26,7 @@ jobs:
       FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
       FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
       REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
+      RO_HERO_SHA256: a9d2d6f21c3fb4aabdfb491c3c1dc863b1cbb4a5379bf853d42aa40bbde78ee0
 
     steps:
       - name: Check out repository
@@ -42,7 +43,10 @@ jobs:
           test -f blog/greater-victoria-chloramine-water.html
           test -f blog/reverse-osmosis-victoria-do-you-need-ro.html
           test -f blog/well-water-rotten-egg-smell-vancouver-island.html
-          test -f assets/blog/ro-components-hero-photo.webp
+          test -f docs/internal/ro-hero-hd.part1.b64
+          test -f docs/internal/ro-hero-hd.part2.b64
+          test -f docs/internal/ro-hero-hd.part3.b64
+          test -f docs/internal/ro-hero-hd.part4.b64
           test -f assets/well-water-sulfur-vancouver-island.webp
           test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
           test -n "$FTP_PASSWORD" || { echo 'Missing GREENGEEKS_FTP_PASSWORD secret'; exit 1; }
@@ -63,12 +67,55 @@ jobs:
             --exclude 'LICENSE*' \
             --exclude '.gitignore' \
             --exclude 'assets/image-hotlinks.json' \
+            --exclude 'assets/blog/*.b64' \
+            --exclude 'assets/blog/*.base64.txt' \
             ./ _deploy/
 
           if find _deploy -maxdepth 1 -type d -name 'wheretheyrest' | grep -q .; then
             echo 'Safety stop: WhereTheyRest appeared in the Pure Water Pros deployment payload.'
             exit 1
           fi
+
+          # Reconstruct the exact 1200x833 RO hero from small repository-safe
+          # base64 chunks. This avoids binary corruption through connector writes.
+          mkdir -p _deploy/assets/blog
+          cat \
+            docs/internal/ro-hero-hd.part1.b64 \
+            docs/internal/ro-hero-hd.part2.b64 \
+            docs/internal/ro-hero-hd.part3.b64 \
+            docs/internal/ro-hero-hd.part4.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode \
+            > _deploy/assets/blog/ro-components-hero-hd.webp
+
+          test "$(stat -c%s _deploy/assets/blog/ro-components-hero-hd.webp)" = '38940'
+          hero_sha="$(sha256sum _deploy/assets/blog/ro-components-hero-hd.webp | awk '{print $1}')"
+          echo "RO_HD_HERO BUILD_SHA256=$hero_sha"
+          test "$hero_sha" = "$RO_HERO_SHA256"
+          file _deploy/assets/blog/ro-components-hero-hd.webp | grep -Fq 'Web/P image'
+
+          # Use the HD hero everywhere in the production copy of the RO article,
+          # including social metadata and Article schema, and update its intrinsic
+          # dimensions without altering article copy or layout.
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('_deploy/blog/reverse-osmosis-victoria-do-you-need-ro.html')
+          s = p.read_text(encoding='utf-8')
+          old = 'ro-components-hero-photo.webp'
+          new = 'ro-components-hero-hd.webp'
+          count = s.count(old)
+          if count != 3:
+              raise SystemExit(f'Expected exactly 3 old RO hero references; found {count}')
+          s = s.replace(old, new)
+          old_dims = 'width="1000" height="750"'
+          if old_dims not in s:
+              raise SystemExit('Expected RO hero intrinsic dimensions were not found')
+          s = s.replace(old_dims, 'width="1200" height="833"', 1)
+          p.write_text(s, encoding='utf-8')
+          PY
+
+          grep -Fq '/assets/blog/ro-components-hero-hd.webp' _deploy/blog/reverse-osmosis-victoria-do-you-need-ro.html
+          ! grep -Fq '/assets/blog/ro-components-hero-photo.webp' _deploy/blog/reverse-osmosis-victoria-do-you-need-ro.html
 
           echo 'Skipping zero-byte placeholder files rather than overwriting production with them:'
           find _deploy -type f -empty -print || true
@@ -123,23 +170,25 @@ jobs:
             test "$live_sha" = "$repo_sha"
           }
 
-          # Check the RO article and its hero first. This prevents unrelated
-          # homepage/cache differences from masking a broken article image.
+          # Verify the live article actually references the new cache-busting HD
+          # filename, and never silently fall back to the old low-resolution hero.
           ro_article_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-ro-article.html -w '%{http_code}' "https://www.purewaterpros.ca/blog/reverse-osmosis-victoria-do-you-need-ro.html?deploy-check=${GITHUB_SHA}")"
           echo "RO_ARTICLE HTTP=$ro_article_http"
           test "$ro_article_http" = '200'
-          grep -Fq '/assets/blog/ro-components-hero-photo.webp' /tmp/live-ro-article.html
+          grep -Fq '/assets/blog/ro-components-hero-hd.webp' /tmp/live-ro-article.html
+          ! grep -Fq '/assets/blog/ro-components-hero-photo.webp' /tmp/live-ro-article.html
+          grep -Fq 'width="1200" height="833"' /tmp/live-ro-article.html
 
-          ro_hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-ro-hero.webp -w '%{http_code}' "https://www.purewaterpros.ca/assets/blog/ro-components-hero-photo.webp?deploy-check=${GITHUB_SHA}")"
-          echo "RO_HERO HTTP=$ro_hero_http"
+          ro_hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-ro-hero.webp -w '%{http_code}' "https://www.purewaterpros.ca/assets/blog/ro-components-hero-hd.webp?deploy-check=${GITHUB_SHA}")"
+          echo "RO_HD_HERO HTTP=$ro_hero_http"
           test "$ro_hero_http" = '200'
           ro_hero_live_sha="$(sha256sum /tmp/live-ro-hero.webp | awk '{print $1}')"
-          ro_hero_repo_sha="$(sha256sum assets/blog/ro-components-hero-photo.webp | awk '{print $1}')"
-          echo "RO_HERO LIVE_SHA256=$ro_hero_live_sha"
-          echo "RO_HERO REPO_SHA256=$ro_hero_repo_sha"
-          test "$ro_hero_live_sha" = "$ro_hero_repo_sha"
+          echo "RO_HD_HERO LIVE_SHA256=$ro_hero_live_sha"
+          echo "RO_HD_HERO EXPECTED_SHA256=$RO_HERO_SHA256"
+          test "$ro_hero_live_sha" = "$RO_HERO_SHA256"
+          test "$(stat -c%s /tmp/live-ro-hero.webp)" = '38940'
           file /tmp/live-ro-hero.webp | grep -Fq 'Web/P image'
-          echo 'RO_HERO VERIFIED: live file exactly matches repository WebP.'
+          echo 'RO_HD_HERO VERIFIED: live 1200x833 asset exactly matches the approved HD source.'
 
           # The homepage can be transformed/cached by the hosting layer, so
           # verify availability and a stable content marker rather than bytes.
