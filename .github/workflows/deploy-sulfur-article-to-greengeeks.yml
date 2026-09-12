@@ -43,10 +43,19 @@ jobs:
           test -f blog/greater-victoria-chloramine-water.html
           test -f blog/reverse-osmosis-victoria-do-you-need-ro.html
           test -f blog/well-water-rotten-egg-smell-vancouver-island.html
+          test -f reverse-osmosis-victoria.html
           test -f docs/internal/ro-hero-hd.part1.b64
           test -f docs/internal/ro-hero-hd.part2.b64
           test -f docs/internal/ro-hero-hd.part3.b64
           test -f docs/internal/ro-hero-hd.part4.b64
+          test -f docs/internal/ro-condo-hd-faucet.part1.b64
+          test -f docs/internal/ro-condo-hd-faucet.part2.b64
+          test -f docs/internal/ro-condo-hd-faucet.part3.b64
+          test -f docs/internal/ro-condo-hd-faucet.part4.b64
+          test -f docs/internal/ro-condo-full.part1.b64
+          test -f docs/internal/ro-condo-full.part2.b64
+          test -f docs/internal/ro-condo-full.part3.b64
+          test -f docs/internal/ro-condo-full.part4.b64
           test -f assets/well-water-sulfur-vancouver-island.webp
           test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
           test -n "$FTP_PASSWORD" || { echo 'Missing GREENGEEKS_FTP_PASSWORD secret'; exit 1; }
@@ -76,8 +85,7 @@ jobs:
             exit 1
           fi
 
-          # Reconstruct the exact 1200x833 RO hero from small repository-safe
-          # base64 chunks. This avoids binary corruption through connector writes.
+          # Reconstruct the approved HD RO article hero.
           mkdir -p _deploy/assets/blog
           cat \
             docs/internal/ro-hero-hd.part1.b64 \
@@ -94,13 +102,38 @@ jobs:
           test "$hero_sha" = "$RO_HERO_SHA256"
           file _deploy/assets/blog/ro-components-hero-hd.webp | grep -Fq 'Web/P image'
 
-          # Use the HD hero everywhere in the production copy of the RO article,
-          # including social metadata and Article schema, and update its intrinsic
-          # dimensions without altering article copy or layout.
+          # Reconstruct the cleaned real Pure Water Pros RO installation photos.
+          mkdir -p _deploy/assets/ro-install
+          cat \
+            docs/internal/ro-condo-hd-faucet.part1.b64 \
+            docs/internal/ro-condo-hd-faucet.part2.b64 \
+            docs/internal/ro-condo-hd-faucet.part3.b64 \
+            docs/internal/ro-condo-hd-faucet.part4.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode \
+            > _deploy/assets/ro-install/ro-faucet-langford.webp
+
+          cat \
+            docs/internal/ro-condo-full.part1.b64 \
+            docs/internal/ro-condo-full.part2.b64 \
+            docs/internal/ro-condo-full.part3.b64 \
+            docs/internal/ro-condo-full.part4.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode \
+            > _deploy/assets/ro-install/ro-install-langford.webp
+
+          file _deploy/assets/ro-install/ro-faucet-langford.webp | grep -Fq 'Web/P image'
+          file _deploy/assets/ro-install/ro-install-langford.webp | grep -Fq 'Web/P image'
+          echo "RO_FAUCET_SHA256=$(sha256sum _deploy/assets/ro-install/ro-faucet-langford.webp | awk '{print $1}')" >> "$GITHUB_ENV"
+          echo "RO_INSTALL_SHA256=$(sha256sum _deploy/assets/ro-install/ro-install-langford.webp | awk '{print $1}')" >> "$GITHUB_ENV"
+
+          # Apply the approved HD article hero, real installation photography,
+          # and leak-protection message to the production copies.
           python3 - <<'PY'
           from pathlib import Path
-          p = Path('_deploy/blog/reverse-osmosis-victoria-do-you-need-ro.html')
-          s = p.read_text(encoding='utf-8')
+
+          article = Path('_deploy/blog/reverse-osmosis-victoria-do-you-need-ro.html')
+          s = article.read_text(encoding='utf-8')
           old = 'ro-components-hero-photo.webp'
           new = 'ro-components-hero-hd.webp'
           count = s.count(old)
@@ -111,11 +144,64 @@ jobs:
           if old_dims not in s:
               raise SystemExit('Expected RO hero intrinsic dimensions were not found')
           s = s.replace(old_dims, 'width="1200" height="833"', 1)
-          p.write_text(s, encoding='utf-8')
+          s = s.replace('"dateModified":"2026-09-11"', '"dateModified":"2026-09-12"', 1)
+
+          article_anchor = '<p>Most residential systems are installed under the kitchen sink and include sediment and carbon prefiltration ahead of the membrane. From there, the treated water is either stored in a small pressure tank or delivered through a direct-flow design, depending on the system.</p>'
+          if article_anchor not in s:
+              raise SystemExit('RO article installation-photo anchor not found')
+          article_insert = article_anchor + '''
+        <figure style="margin:28px 0">
+          <img src="/assets/ro-install/ro-install-langford.webp" alt="Pure Water Pros under-sink reverse osmosis installation in Langford with storage tank and leak-detection tray" loading="lazy" decoding="async" style="width:100%;height:auto;border-radius:20px;display:block"/>
+          <figcaption style="margin-top:10px;color:#667984;font-size:14px">A Pure Water Pros under-sink RO installation in Langford. A leak-detection tray is included beneath every new RO system we install.</figcaption>
+        </figure>
+        <p>That leak-detection tray is included at no additional charge on new Pure Water Pros RO installations, adding a simple extra layer of protection and peace of mind under the sink.</p>'''
+          s = s.replace(article_anchor, article_insert, 1)
+          article.write_text(s, encoding='utf-8')
+
+          service = Path('_deploy/reverse-osmosis-victoria.html')
+          s = service.read_text(encoding='utf-8')
+          old_visual = '<div class="service-visual-stack"><figure class="service-example"><picture><source srcset="/assets/service-reverse-osmosis.webp" type="image/webp"/><img alt="Example of an under-sink reverse osmosis drinking-water system" decoding="async" fetchpriority="high" height="390" loading="eager" src="/assets/service-reverse-osmosis.jpg" width="960"/></picture><figcaption>Example reverse-osmosis system</figcaption></figure><aside class="info-panel">'
+          new_visual = '<div class="service-visual-stack"><figure class="service-example"><img alt="Dedicated reverse-osmosis drinking-water faucet installed by Pure Water Pros in Langford" decoding="async" fetchpriority="high" loading="eager" src="/assets/ro-install/ro-faucet-langford.webp" style="width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;display:block"/><figcaption>Dedicated RO drinking-water faucet installed in Langford</figcaption></figure><aside class="info-panel">'
+          if old_visual not in s:
+              raise SystemExit('RO service hero anchor not found')
+          s = s.replace(old_visual, new_visual, 1)
+
+          old_card = '<article class="card"><h3>New RO systems</h3><p>Under-sink systems selected around water quality, available pressure, space and household expectations.</p></article>'
+          new_card = '<article class="card"><h3>New RO systems</h3><p>Under-sink systems selected around water quality, available pressure, space and household expectations. Every new installation includes a leak-detection tray at no additional charge.</p></article>'
+          if old_card not in s:
+              raise SystemExit('RO new-systems card anchor not found')
+          s = s.replace(old_card, new_card, 1)
+
+          section_marker = '</section>\n<section class="content-section alt">'
+          if section_marker not in s:
+              raise SystemExit('RO service installation section anchor not found')
+          install_section = '''</section>
+<section class="content-section">
+<div class="shell two-col">
+<figure class="service-example">
+<img src="/assets/ro-install/ro-install-langford.webp" alt="Pure Water Pros under-sink reverse osmosis installation in Langford with storage tank and leak-detection tray" loading="lazy" decoding="async" style="width:100%;height:auto;aspect-ratio:4/3;object-fit:cover;display:block"/>
+<figcaption>Pure Water Pros under-sink RO installation in Langford</figcaption>
+</figure>
+<aside class="info-panel">
+<p class="eyebrow">Included with every new RO installation</p>
+<h2>Leak protection included.</h2>
+<p>Every new Pure Water Pros under-sink RO installation includes a leak-detection tray beneath the system at no additional charge. It adds a simple extra layer of protection and peace of mind under the sink.</p>
+<p>The tray is one part of a careful installation that also includes proper connections, sanitizing and performance verification before the system is put into service.</p>
+</aside>
+</div>
+</section>
+<section class="content-section alt">'''
+          s = s.replace(section_marker, install_section, 1)
+          service.write_text(s, encoding='utf-8')
           PY
 
           grep -Fq '/assets/blog/ro-components-hero-hd.webp' _deploy/blog/reverse-osmosis-victoria-do-you-need-ro.html
           ! grep -Fq '/assets/blog/ro-components-hero-photo.webp' _deploy/blog/reverse-osmosis-victoria-do-you-need-ro.html
+          grep -Fq '/assets/ro-install/ro-install-langford.webp' _deploy/blog/reverse-osmosis-victoria-do-you-need-ro.html
+          grep -Fq 'leak-detection tray' _deploy/blog/reverse-osmosis-victoria-do-you-need-ro.html
+          grep -Fq '/assets/ro-install/ro-faucet-langford.webp' _deploy/reverse-osmosis-victoria.html
+          grep -Fq '/assets/ro-install/ro-install-langford.webp' _deploy/reverse-osmosis-victoria.html
+          grep -Fq 'Leak protection included.' _deploy/reverse-osmosis-victoria.html
 
           echo 'Skipping zero-byte placeholder files rather than overwriting production with them:'
           find _deploy -type f -empty -print || true
@@ -170,14 +256,22 @@ jobs:
             test "$live_sha" = "$repo_sha"
           }
 
-          # Verify the live article actually references the new cache-busting HD
-          # filename, and never silently fall back to the old low-resolution hero.
           ro_article_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-ro-article.html -w '%{http_code}' "https://www.purewaterpros.ca/blog/reverse-osmosis-victoria-do-you-need-ro.html?deploy-check=${GITHUB_SHA}")"
           echo "RO_ARTICLE HTTP=$ro_article_http"
           test "$ro_article_http" = '200'
           grep -Fq '/assets/blog/ro-components-hero-hd.webp' /tmp/live-ro-article.html
           ! grep -Fq '/assets/blog/ro-components-hero-photo.webp' /tmp/live-ro-article.html
           grep -Fq 'width="1200" height="833"' /tmp/live-ro-article.html
+          grep -Fq '/assets/ro-install/ro-install-langford.webp' /tmp/live-ro-article.html
+          grep -Fq 'leak-detection tray' /tmp/live-ro-article.html
+
+          ro_service_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-ro-service.html -w '%{http_code}' "https://www.purewaterpros.ca/reverse-osmosis-victoria.html?deploy-check=${GITHUB_SHA}")"
+          echo "RO_SERVICE HTTP=$ro_service_http"
+          test "$ro_service_http" = '200'
+          grep -Fq '/assets/ro-install/ro-faucet-langford.webp' /tmp/live-ro-service.html
+          grep -Fq '/assets/ro-install/ro-install-langford.webp' /tmp/live-ro-service.html
+          grep -Fq 'Leak protection included.' /tmp/live-ro-service.html
+          grep -Fq 'leak-detection tray' /tmp/live-ro-service.html
 
           ro_hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-ro-hero.webp -w '%{http_code}' "https://www.purewaterpros.ca/assets/blog/ro-components-hero-hd.webp?deploy-check=${GITHUB_SHA}")"
           echo "RO_HD_HERO HTTP=$ro_hero_http"
@@ -188,10 +282,19 @@ jobs:
           test "$ro_hero_live_sha" = "$RO_HERO_SHA256"
           test "$(stat -c%s /tmp/live-ro-hero.webp)" = '38940'
           file /tmp/live-ro-hero.webp | grep -Fq 'Web/P image'
-          echo 'RO_HD_HERO VERIFIED: live 1200x833 asset exactly matches the approved HD source.'
 
-          # The homepage can be transformed/cached by the hosting layer, so
-          # verify availability and a stable content marker rather than bytes.
+          faucet_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-ro-faucet.webp -w '%{http_code}' "https://www.purewaterpros.ca/assets/ro-install/ro-faucet-langford.webp?deploy-check=${GITHUB_SHA}")"
+          echo "RO_FAUCET HTTP=$faucet_http"
+          test "$faucet_http" = '200'
+          test "$(sha256sum /tmp/live-ro-faucet.webp | awk '{print $1}')" = "$RO_FAUCET_SHA256"
+          file /tmp/live-ro-faucet.webp | grep -Fq 'Web/P image'
+
+          install_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-ro-install.webp -w '%{http_code}' "https://www.purewaterpros.ca/assets/ro-install/ro-install-langford.webp?deploy-check=${GITHUB_SHA}")"
+          echo "RO_INSTALL HTTP=$install_http"
+          test "$install_http" = '200'
+          test "$(sha256sum /tmp/live-ro-install.webp | awk '{print $1}')" = "$RO_INSTALL_SHA256"
+          file /tmp/live-ro-install.webp | grep -Fq 'Web/P image'
+
           home_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-home.html -w '%{http_code}' "https://www.purewaterpros.ca/?deploy-check=${GITHUB_SHA}")"
           echo "HOME HTTP=$home_http"
           test "$home_http" = '200'
@@ -236,6 +339,7 @@ jobs:
         shell: bash
         run: |
           echo 'Pure Water Pros production deployment completed successfully.'
+          echo 'RO service page now uses real Pure Water Pros installation photography and included leak-tray messaging.'
           echo 'GitHub main is now the deployment source for Pure Water Pros site files.'
           echo 'The server-side wheretheyrest directory is explicitly excluded and must never be modified by this workflow.'
           echo 'Other server-only files are not deleted by this workflow.'
