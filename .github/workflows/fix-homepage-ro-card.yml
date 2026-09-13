@@ -17,7 +17,7 @@ jobs:
       - name: Check out main
         uses: actions/checkout@v4
 
-      - name: Fully decode and validate exact uploaded RO photo
+      - name: Reconstruct and fully validate exact uploaded RO photo
         shell: bash
         run: |
           set -euo pipefail
@@ -25,10 +25,19 @@ jobs:
           python - <<'PY'
           from PIL import Image
           from pathlib import Path
-          import hashlib
+          import base64, hashlib
 
-          p = Path('images/gallery/pure-water-pros-under-sink-ro-user.webp')
-          data = p.read_bytes()
+          parts = [Path(f'docs/internal/pwp-ro-exact-final.part{i}.b64') for i in range(1, 5)]
+          for p in parts:
+              if not p.exists():
+                  raise SystemExit(f'Missing staged image chunk: {p}')
+              if len(p.read_text(encoding='ascii')) != 18805:
+                  raise SystemExit(f'Unexpected chunk length for {p}')
+
+          encoded = ''.join(p.read_text(encoding='ascii') for p in parts)
+          if len(encoded) != 75220:
+              raise SystemExit(f'Combined base64 length mismatch: {len(encoded)}')
+          data = base64.b64decode(encoded, validate=True)
           expected_size = 56414
           expected_sha = '7fa1552c85c366e7f490cba2c405fc2c6b93b064d2f56fd7e94850dd22c147ed'
           actual_sha = hashlib.sha256(data).hexdigest()
@@ -36,13 +45,16 @@ jobs:
               raise SystemExit(f'RO photo size mismatch: {len(data)} != {expected_size}')
           if actual_sha != expected_sha:
               raise SystemExit(f'RO photo SHA mismatch: {actual_sha} != {expected_sha}')
-          with Image.open(p) as im:
+
+          out = Path('images/gallery/pure-water-pros-under-sink-ro-exact.webp')
+          out.write_bytes(data)
+          with Image.open(out) as im:
               im.load()
               if im.format != 'WEBP':
                   raise SystemExit(f'Unexpected image format: {im.format}')
               if im.size != (1200, 904):
                   raise SystemExit(f'Unexpected image dimensions: {im.size}')
-              print(f'Exact uploaded RO photo validated: format={im.format}, size={im.size}, sha256={actual_sha}')
+              print(f'Exact uploaded RO photo fully decoded: format={im.format}, size={im.size}, sha256={actual_sha}')
           PY
 
       - name: Replace only the first homepage RO card
@@ -54,12 +66,12 @@ jobs:
           p = Path('index.html')
           s = p.read_text(encoding='utf-8')
           old_card = '''<figure class="field-experience-card"><picture><source media="(max-width:620px)" srcset="/images/gallery/_cache/Quick%20Change%20RO%20System_480.webp" type="image/webp"/><source srcset="/images/gallery/_cache/Quick%20Change%20RO%20System_800.webp 800w, /images/gallery/_cache/Quick%20Change%20RO%20System_1200.webp 1200w" sizes="(max-width:900px) 50vw, 33vw" type="image/webp"/><img src="/images/gallery/Quick%20Change%20RO%20System.jpg" alt="Prior field-work example of a residential reverse osmosis drinking-water system" loading="lazy" decoding="async"/></picture><figcaption><strong>Reverse osmosis</strong><span>Prior hands-on field example of residential drinking-water RO equipment.</span></figcaption></figure>'''
-          new_card = '''<figure class="field-experience-card"><img src="/images/gallery/pure-water-pros-under-sink-ro-user.webp?v=1" alt="Under-sink reverse osmosis drinking-water installation with storage tank" loading="lazy" decoding="async" width="1200" height="904"/><figcaption><strong>Complete under-sink reverse osmosis</strong><span>New Pure Water Pros installations include standard faucet installation, including drilling the sink or countertop where appropriate, plus a leak-detection tray beneath the system at no additional charge.</span></figcaption></figure>'''
+          new_card = '''<figure class="field-experience-card"><img src="/images/gallery/pure-water-pros-under-sink-ro-exact.webp?v=1" alt="Under-sink reverse osmosis drinking-water installation with storage tank" loading="lazy" decoding="async" width="1200" height="904"/><figcaption><strong>Complete under-sink reverse osmosis</strong><span>New Pure Water Pros installations include standard faucet installation, including drilling the sink or countertop where appropriate, plus a leak-detection tray beneath the system at no additional charge.</span></figcaption></figure>'''
 
           if s.count(old_card) != 1:
               raise SystemExit(f'Expected exactly one current Quick Change RO card, found {s.count(old_card)}')
           s = s.replace(old_card, new_card, 1)
-          if s.count('/images/gallery/pure-water-pros-under-sink-ro-user.webp?v=1') != 1:
+          if s.count('/images/gallery/pure-water-pros-under-sink-ro-exact.webp?v=1') != 1:
               raise SystemExit('Exact uploaded RO photo reference missing or duplicated')
           if '/images/gallery/Quick%20Change%20RO%20System.jpg' in s:
               raise SystemExit('Old Quick Change RO card reference still present')
@@ -67,10 +79,11 @@ jobs:
 
           status = subprocess.check_output(['git', 'status', '--porcelain=v1'], text=True)
           actual = {line[3:] for line in status.splitlines() if line.strip()}
-          if actual != {'index.html'}:
+          expected = {'index.html', 'images/gallery/pure-water-pros-under-sink-ro-exact.webp'}
+          if actual != expected:
               raise SystemExit(f'Unexpected working-tree changes: {actual!r}')
 
-      - name: Commit homepage card only
+      - name: Commit exact photo and homepage card only
         shell: bash
         run: |
           set -euo pipefail
@@ -78,6 +91,6 @@ jobs:
           git diff -- index.html
           git config user.name 'github-actions[bot]'
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add index.html
+          git add index.html images/gallery/pure-water-pros-under-sink-ro-exact.webp
           git commit -m 'Use exact uploaded RO photo on homepage'
           git push
