@@ -1,0 +1,64 @@
+name: Temporary RO image reconstruction helper
+
+on:
+  push:
+    branches:
+      - pwp-ro-binary-reconstruct-helper
+    paths:
+      - .github/workflows/reconstruct-ro-install-temp.yml
+
+permissions:
+  contents: write
+
+jobs:
+  reconstruct:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out isolated working branch
+        uses: actions/checkout@v4
+        with:
+          ref: pwp-ro-install-value-20260912
+          fetch-depth: 0
+
+      - name: Reconstruct and validate verified RO install image
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p assets/ro-install
+          cat \
+            docs/internal/ro-live-full-q78.part1.b64 \
+            docs/internal/ro-live-full-q78.part2.b64 \
+            docs/internal/ro-live-full-q78.part3.b64 \
+            docs/internal/ro-live-full-q78.part4.b64 \
+            | tr -d '\r\n' \
+            | base64 --decode \
+            > assets/ro-install/ro-install-langford-q78.webp
+
+          file assets/ro-install/ro-install-langford-q78.webp | grep -Fq 'Web/P image'
+
+          python3 - <<'PY'
+          from pathlib import Path
+          import struct
+
+          p = Path('assets/ro-install/ro-install-langford-q78.webp')
+          data = p.read_bytes()
+          if len(data) < 12 or data[:4] != b'RIFF' or data[8:12] != b'WEBP':
+              raise SystemExit('Not a valid RIFF WebP header')
+          declared = struct.unpack('<I', data[4:8])[0] + 8
+          if declared != len(data):
+              raise SystemExit(f'Incomplete WebP: RIFF declares {declared} bytes, got {len(data)}')
+          if len(data) < 30000:
+              raise SystemExit(f'Unexpectedly small RO image: {len(data)} bytes')
+          print(f'Validated complete WebP: {len(data)} bytes')
+          PY
+
+      - name: Commit image to isolated working branch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add assets/ro-install/ro-install-langford-q78.webp
+          git diff --cached --quiet && { echo 'No image change to commit'; exit 0; }
+          git commit -m 'Add verified Pure Water Pros RO install photo'
+          git push origin HEAD:pwp-ro-install-value-20260912
