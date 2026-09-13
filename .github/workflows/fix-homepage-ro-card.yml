@@ -1,0 +1,53 @@
+name: Fix homepage RO field card
+
+on:
+  push:
+    branches:
+      - fix-homepage-ro-card
+    paths:
+      - '.github/workflows/fix-homepage-ro-card.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out branch
+        uses: actions/checkout@v4
+        with:
+          ref: fix-homepage-ro-card
+
+      - name: Replace only the first field-experience RO card
+        shell: python
+        run: |
+          from pathlib import Path
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+          old_css = '.field-experience-card:first-child img{object-fit:contain;padding:8px;background:#f8fbfc}'
+          new_css = '.field-experience-card:first-child img{object-fit:cover;padding:0;background:#eaf3f6}'
+          old_card = '''<figure class="field-experience-card"><picture><source media="(max-width:620px)" srcset="/images/gallery/_cache/6%20Stage%20Traditional%20RO%20System_480.webp" type="image/webp"/><source srcset="/images/gallery/_cache/6%20Stage%20Traditional%20RO%20System_800.webp 800w, /images/gallery/_cache/6%20Stage%20Traditional%20RO%20System_1200.webp 1200w" sizes="(max-width:900px) 50vw, 33vw" type="image/webp"/><img src="/images/gallery/6%20Stage%20Traditional%20RO%20System.jpg" alt="Prior field-work example of a traditional under-sink reverse osmosis drinking-water system" loading="lazy" decoding="async"/></picture><figcaption><strong>Traditional under-sink reverse osmosis</strong><span>Conventional multi-stage drinking-water RO system installed below the sink.</span></figcaption></figure>'''
+          new_card = '''<figure class="field-experience-card"><img src="/assets/field-experience/under-sink-ro-drinking-water.webp" alt="Prior field-experience example of an under-sink reverse osmosis drinking-water installation" loading="lazy" decoding="async" width="570" height="760"/><figcaption><strong>Under-sink reverse osmosis</strong><span>Residential drinking-water RO equipment fitted neatly inside an existing kitchen cabinet.</span></figcaption></figure>'''
+          if s.count(old_css) != 1:
+              raise SystemExit(f'Expected one old first-card CSS rule, found {s.count(old_css)}')
+          if s.count(old_card) != 1:
+              raise SystemExit(f'Expected one old RO card, found {s.count(old_card)}')
+          s = s.replace(old_css, new_css, 1).replace(old_card, new_card, 1)
+          if '/images/gallery/6%20Stage%20Traditional%20RO%20System.jpg' in s:
+              raise SystemExit('Old wall-mounted RO image reference still present')
+          if s.count('/assets/field-experience/under-sink-ro-drinking-water.webp') != 1:
+              raise SystemExit('New curated RO image reference missing or duplicated')
+          p.write_text(s, encoding='utf-8')
+
+      - name: Commit isolated homepage correction
+        shell: bash
+        run: |
+          set -euo pipefail
+          git diff --check
+          git diff -- index.html
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Replace rejected homepage RO photo with curated under-sink field image'
+          git push origin HEAD:fix-homepage-ro-card
