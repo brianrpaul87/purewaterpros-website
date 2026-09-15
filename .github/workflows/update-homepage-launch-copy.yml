@@ -6,7 +6,7 @@ on:
     branches:
       - main
     paths:
-      - '.github/workflows/update-homepage-launch-copy.yml'
+      - 'docs/internal/update-homepage-launch-copy-trigger.txt'
 
 permissions:
   contents: write
