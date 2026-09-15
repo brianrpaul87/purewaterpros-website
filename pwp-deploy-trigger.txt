@@ -4,3 +4,4 @@ Recovery trigger: 2026-09-12 17:14 Pacific — stable workflow restored and inje
 Homepage RO card correction trigger: 2026-09-12 19:30 Pacific — deploy curated under-sink RO field photo only.
 Homepage RO gallery fallback trigger: 2026-09-12 19:38 Pacific — replace broken curated RO asset with proven Quick Change gallery cache only.
 Exact uploaded RO photo trigger: 2026-09-12 20:27 Pacific — deploy the exact user-provided under-sink RO photo after full decode validation.
+Homepage launch-language update trigger: 2026-09-15 — remove soft-launch and limited-availability wording and deploy current service messaging.
