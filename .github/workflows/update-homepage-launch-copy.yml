@@ -1,0 +1,102 @@
+name: Update Pure Water Pros homepage launch copy
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - main
+    paths:
+      - '.github/workflows/update-homepage-launch-copy.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  update-copy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Replace outdated launch-status copy
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path('index.html')
+          s = p.read_text(encoding='utf-8')
+
+          replacements = [
+              (
+                  'Water treatment and filtration in Victoria, Langford and Greater Victoria. Now booking September appointments for RO, equipment service, filtration and water-treatment consultations.',
+                  'Water treatment and filtration in Victoria, Langford and Greater Victoria. Residential and light-commercial RO, filtration, equipment service and water-treatment consultations.'
+              ),
+              (
+                  'Now booking September appointments for residential water treatment, reverse osmosis, equipment service and filtration across Greater Victoria and the West Shore.',
+                  'Residential and light-commercial water treatment, reverse osmosis, equipment service and filtration across Greater Victoria and the West Shore.'
+              ),
+              (
+                  'Technician-led residential and light-commercial water treatment service now booking September appointments across Greater Victoria and the West Shore.',
+                  'Technician-led residential and light-commercial water treatment service across Greater Victoria and the West Shore.'
+              ),
+              (
+                  'Yes. Pure Water Pros is now accepting calls, questions and September service requests. Appointment dates and times are confirmed directly after your request is reviewed.',
+                  'Yes. Pure Water Pros is accepting calls, questions and service requests across Greater Victoria and the West Shore. Appointment dates and times are confirmed directly after your request is reviewed.'
+              ),
+              (
+                  '<div class="launch-strip" role="status"><strong>Now booking September appointments:</strong> Residential water treatment, RO and equipment service across Greater Victoria and the West Shore.</div>',
+                  '<div class="launch-strip" role="status"><strong>Now serving Greater Victoria &amp; the West Shore:</strong> Residential and light-commercial water treatment, installation and service.</div>'
+              ),
+              (
+                  'Pure Water Pros provides residential water-treatment service, filtration and drinking-water solutions across Greater Victoria and the West Shore. We are now booking a limited number of September appointments while our full service schedule comes online.',
+                  'Pure Water Pros provides residential and light-commercial water-treatment service, filtration and drinking-water solutions across Greater Victoria and the West Shore. We are now booking appointments for installations, maintenance and water-treatment consultations.'
+              ),
+          ]
+
+          for old, new in replacements:
+              count = s.count(old)
+              if count < 1:
+                  raise SystemExit(f'Expected homepage copy was not found: {old[:90]!r}')
+              print(f'Replacing {count} occurrence(s): {old[:90]}')
+              s = s.replace(old, new)
+
+          stale = [
+              'limited number of September appointments',
+              'full service schedule comes online',
+              'Now booking September appointments',
+              'now booking September appointments',
+              'September service requests',
+          ]
+          for phrase in stale:
+              if phrase in s:
+                  raise SystemExit(f'Stale launch wording remains in index.html: {phrase}')
+
+          p.write_text(s, encoding='utf-8')
+          PY
+
+      - name: Scan public site files for other stale launch wording
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo 'STALE-LAUNCH SCAN (informational):'
+          grep -RniE \
+            'soft launch|limited availability|limited number of September appointments|full service schedule comes online|now booking September appointments|September service requests|opening soon|preparing to serve|planned services|opening (August|September)' \
+            --include='*.html' --include='*.php' \
+            --exclude-dir=.git --exclude-dir=.github --exclude-dir=docs --exclude-dir=wheretheyrest \
+            . || true
+
+      - name: Commit homepage copy update
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet -- index.html; then
+            echo 'No homepage changes detected.'
+            exit 0
+          fi
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add index.html
+          git commit -m 'Remove soft-launch availability language'
+          git push origin HEAD:main
