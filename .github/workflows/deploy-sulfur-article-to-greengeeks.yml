@@ -63,6 +63,7 @@ jobs:
             --exclude '_deploy/' \
             --exclude 'wheretheyrest/' \
             --exclude 'wheretheyrest/**' \
+            --exclude 'wtr-deploy-trigger.txt' \
             --exclude 'README*' \
             --exclude 'LICENSE*' \
             --exclude '.gitignore' \
@@ -73,6 +74,11 @@ jobs:
 
           if find _deploy -maxdepth 1 -type d -name 'wheretheyrest' | grep -q .; then
             echo 'Safety stop: WhereTheyRest appeared in the Pure Water Pros deployment payload.'
+            exit 1
+          fi
+
+          if test -e _deploy/wtr-deploy-trigger.txt; then
+            echo 'Safety stop: wtr-deploy-trigger.txt appeared in the Pure Water Pros deployment payload.'
             exit 1
           fi
 
@@ -142,7 +148,7 @@ jobs:
           set ftp:ssl-force true
           set ftp:ssl-protect-data true
           set ssl:verify-certificate yes
-          mirror -R --verbose --parallel=2 --exclude-glob wheretheyrest --exclude-glob 'wheretheyrest/**' _deploy "$ROOT"
+          mirror -R --verbose --parallel=2 --exclude-glob wheretheyrest --exclude-glob 'wheretheyrest/**' --exclude-glob wtr-deploy-trigger.txt _deploy "$ROOT"
           put -O "$ROOT" _deploy/.htaccess
           bye
           EOF
@@ -237,5 +243,5 @@ jobs:
         run: |
           echo 'Pure Water Pros production deployment completed successfully.'
           echo 'GitHub main is now the deployment source for Pure Water Pros site files.'
-          echo 'The server-side wheretheyrest directory is explicitly excluded and must never be modified by this workflow.'
+          echo 'The server-side wheretheyrest directory and wtr-deploy-trigger.txt are explicitly excluded and must never be modified by this workflow.'
           echo 'Other server-only files are not deleted by this workflow.'
