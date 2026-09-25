@@ -1,17 +1,17 @@
-# Pure Water Pros — Current Work Image Library
+# Pure Water Pros — Current Installation Photo Library
 
-These images document recent Pure Water Pros customer installations in Greater Victoria, British Columbia.
+These photos document current Pure Water Pros installations in Greater Victoria / West Shore, BC.
 
-## Usage
+## Install 01
+- `pwp-ro-install-01-under-sink-wide.webp` — under-sink reverse-osmosis equipment and storage tank
+- `pwp-ro-install-01-faucet.webp` — dedicated reverse-osmosis drinking-water faucet
 
-- These are genuine current Pure Water Pros installations and may be used on purewaterpros.ca and in Pure Water Pros marketing/social content.
-- They do not require the "prior field experience" disclaimer used for older field-experience images.
-- Do not identify the customer, street address, or exact property location.
-- Describe locations generically as Greater Victoria / West Shore unless Brian specifically approves more detail.
-- Do not imply manufacturer authorization or affiliation.
+## Install 02
+- `pwp-ro-install-02-under-sink-wide.webp` — under-sink reverse-osmosis equipment and storage tank
+- `pwp-ro-install-02-faucet-close.webp` — dedicated reverse-osmosis drinking-water faucet
 
-## Images
-
-- pwp-ro-install-01-under-sink.webp — current under-sink reverse osmosis installation.
-- pwp-ro-install-01-faucet.webp — dedicated RO drinking-water faucet from the same installation.
-- pwp-ro-install-02-under-sink.webp — current under-sink reverse osmosis installation.
+## Usage rules
+- These are genuine current Pure Water Pros installation photos and may be used on the Pure Water Pros website, blog and social media.
+- Do not identify the customer or publish address/location-specific details.
+- Do not imply manufacturer, distributor or dealer authorization or affiliation.
+- Do not alter equipment or add branding that was not present in the original work.
