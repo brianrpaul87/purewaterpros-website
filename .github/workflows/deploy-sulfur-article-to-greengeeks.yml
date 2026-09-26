@@ -150,6 +150,23 @@ jobs:
           set ssl:verify-certificate yes
           mirror -R --verbose --parallel=2 --exclude-glob wheretheyrest --exclude-glob 'wheretheyrest/**' --exclude-glob wtr-deploy-trigger.txt _deploy "$ROOT"
           put -O "$ROOT" _deploy/.htaccess
+
+          # The FTP mirror intentionally does not use --delete because GreenGeeks
+          # contains server-only files. Remove only the known retired Ontario-era
+          # website pages so they cannot survive future deployments as stale files.
+          rm -f "${ROOT%/}/contact.html"
+          rm -f "${ROOT%/}/gallery.html"
+          rm -f "${ROOT%/}/gallery.php"
+          rm -f "${ROOT%/}/ro.html"
+          rm -f "${ROOT%/}/softeners.html"
+          rm -f "${ROOT%/}/uv.html"
+          rm -f "${ROOT%/}/iron-sulfur.html"
+          rm -f "${ROOT%/}/city-water-issues.html"
+          rm -f "${ROOT%/}/well-water-issues.html"
+          rm -f "${ROOT%/}/services/ro.html"
+          rm -f "${ROOT%/}/services/softeners.html"
+          rm -f "${ROOT%/}/services/uv.html"
+          rm -f "${ROOT%/}/services/iron-sulfur.html"
           bye
           EOF
 
@@ -235,6 +252,28 @@ jobs:
 
           grep -Fq '/assets/well-water-sulfur-vancouver-island.webp' /tmp/live-sulfur.html
           ! grep -Fq 'cdn.marblism.com/l8kmBsdipVs.webp' /tmp/live-sulfur.html
+
+          verify_legacy_redirect() {
+            local label="$1"
+            local source_url="$2"
+            local expected_location="$3"
+            local headers code location
+            headers="$(curl -sS -I --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' "$source_url")"
+            code="$(printf '%s\n' "$headers" | awk 'NR==1 {print $2}')"
+            location="$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}')"
+            echo "$label HTTP=$code LOCATION=$location"
+            test "$code" = '301'
+            test "$location" = "$expected_location"
+          }
+
+          verify_legacy_redirect 'LEGACY_CONTACT' 'https://www.purewaterpros.ca/contact.html' 'https://www.purewaterpros.ca/#launch-request'
+          verify_legacy_redirect 'LEGACY_RO' 'https://www.purewaterpros.ca/ro.html' 'https://www.purewaterpros.ca/reverse-osmosis-victoria.html'
+          verify_legacy_redirect 'LEGACY_UV' 'https://www.purewaterpros.ca/uv.html' 'https://www.purewaterpros.ca/uv-water-treatment-victoria.html'
+          verify_legacy_redirect 'LEGACY_SOFTENER' 'https://www.purewaterpros.ca/softeners.html' 'https://www.purewaterpros.ca/water-softeners-victoria.html'
+          verify_legacy_redirect 'LEGACY_IRON_SULFUR' 'https://www.purewaterpros.ca/iron-sulfur.html' 'https://www.purewaterpros.ca/iron-sulfur-water-treatment-victoria.html'
+          verify_legacy_redirect 'LEGACY_CITY_WATER' 'https://www.purewaterpros.ca/city-water-issues.html' 'https://www.purewaterpros.ca/water-filtration-victoria.html'
+          verify_legacy_redirect 'LEGACY_WELL_WATER' 'https://www.purewaterpros.ca/well-water-issues.html' 'https://www.purewaterpros.ca/water-filtration-victoria.html'
+          verify_legacy_redirect 'LEGACY_GALLERY' 'https://www.purewaterpros.ca/gallery.html' 'https://www.purewaterpros.ca/'
 
           echo 'Full-site production verification passed.'
 
