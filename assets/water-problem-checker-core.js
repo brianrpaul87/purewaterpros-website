@@ -59,8 +59,8 @@
       next: "Follow current public-health instructions now. After the immediate safety issue is addressed, a treatment professional can review the well, pretreatment and continuous disinfection options."
     },
     leak: {
-      title: "An active leak or electrical risk should not wait for launch.",
-      copy: "Water around electrical equipment, active flooding or a pressurized leak can damage property and create a safety hazard. Pure Water Pros is not currently operating an emergency-response service.",
+      title: "An active leak or electrical risk should be handled immediately.",
+      copy: "Water around electrical equipment, active flooding or a pressurized leak can damage property and create a safety hazard. Pure Water Pros does not provide emergency-response service.",
       next: "Shut off water or power only when it is safe to do so, and contact an available emergency plumber, electrician or emergency service now."
     }
   };
