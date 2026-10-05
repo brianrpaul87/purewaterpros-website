@@ -10,6 +10,7 @@ on:
       - '!docs/**'
       - '!.github/**'
       - '.github/workflows/deploy-sulfur-article-to-greengeeks.yml'
+      - '.github/scripts/verify_public_site.py'
 
 permissions:
   contents: read
@@ -50,6 +51,12 @@ jobs:
           test -f assets/well-water-sulfur-vancouver-island.webp
           test -n "$FTP_USERNAME" || { echo 'Missing GREENGEEKS_FTP_USERNAME secret'; exit 1; }
           test -n "$FTP_PASSWORD" || { echo 'Missing GREENGEEKS_FTP_PASSWORD secret'; exit 1; }
+
+      - name: Verify public site source
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 .github/scripts/verify_public_site.py
 
       - name: Build production payload
         shell: bash
@@ -219,6 +226,20 @@ jobs:
           echo "HOME HTTP=$home_http"
           test "$home_http" = '200'
           grep -Fq 'Pure Water Pros' /tmp/live-home.html
+          grep -Fq 'action="/contact.php"' /tmp/live-home.html
+          grep -Fq 'method="post"' /tmp/live-home.html
+          grep -Fq 'name="email" required' /tmp/live-home.html
+          grep -Fq 'name="consent" required' /tmp/live-home.html
+
+          # Safe form-endpoint health check. The honeypot path intentionally exits
+          # before mail() is called, so this exercises the live POST handler without
+          # sending a customer inquiry or email.
+          form_headers="$(curl -sS --max-redirs 0 -D - -o /dev/null --retry 3 --retry-delay 2 -X POST -d 'website=automated-health-check' 'https://www.purewaterpros.ca/contact.php')"
+          form_code="$(printf '%s\n' "$form_headers" | awk 'NR==1 {print $2}')"
+          form_location="$(printf '%s\n' "$form_headers" | awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}')"
+          echo "FORM_HONEYPOT HTTP=$form_code LOCATION=$form_location"
+          test "$form_code" = '303'
+          test "$form_location" = '/thank-you.html'
 
           verify_exact \
             'BLOG_INDEX' \
@@ -243,6 +264,32 @@ jobs:
             "https://www.purewaterpros.ca/sitemap.xml?deploy-check=${GITHUB_SHA}" \
             'sitemap.xml' \
             '/tmp/live-sitemap.xml'
+
+          verify_exact \
+            'ROBOTS' \
+            "https://www.purewaterpros.ca/robots.txt?deploy-check=${GITHUB_SHA}" \
+            'robots.txt' \
+            '/tmp/live-robots.txt'
+
+          # Every URL advertised in the sitemap must resolve successfully after deploy.
+          python3 - <<'PY' > /tmp/pwp-sitemap-urls.txt
+          import xml.etree.ElementTree as ET
+          tree = ET.parse('sitemap.xml')
+          ns = {'sm': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          for node in tree.findall('sm:url', ns):
+              loc = node.findtext('sm:loc', default='', namespaces=ns).strip()
+              if loc:
+                  print(loc)
+          PY
+
+          while IFS= read -r sitemap_url; do
+            tmp_file="$(mktemp)"
+            code="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o "$tmp_file" -w '%{http_code}' "$sitemap_url?deploy-check=${GITHUB_SHA}")"
+            echo "SITEMAP_URL $sitemap_url HTTP=$code"
+            test "$code" = '200'
+            ! grep -Eiq 'Now booking September|soft launch|Pre-launch:|Opening August 2026|Request August follow-up|Durham, Peterborough|Omemee|905-242-3846|705-768-7273' "$tmp_file"
+            rm -f "$tmp_file"
+          done < /tmp/pwp-sitemap-urls.txt
 
           sulfur_hero_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-sulfur-hero.webp -w '%{http_code}' "https://www.purewaterpros.ca/assets/well-water-sulfur-vancouver-island.webp?deploy-check=${GITHUB_SHA}")"
           echo "SULFUR_HERO HTTP=$sulfur_hero_http"
@@ -315,6 +362,13 @@ jobs:
           verify_legacy_redirect 'LEGACY_SERVICES_UV' 'https://www.purewaterpros.ca/services/uv.html' 'https://www.purewaterpros.ca/uv-water-treatment-victoria.html'
           verify_legacy_redirect 'LEGACY_SERVICES_SOFTENER' 'https://www.purewaterpros.ca/services/softeners.html' 'https://www.purewaterpros.ca/water-softeners-victoria.html'
           verify_legacy_redirect 'LEGACY_SERVICES_IRON_SULFUR' 'https://www.purewaterpros.ca/services/iron-sulfur.html' 'https://www.purewaterpros.ca/iron-sulfur-water-treatment-victoria.html'
+          verify_legacy_redirect 'CANONICAL_NON_WWW' 'https://purewaterpros.ca/' 'https://www.purewaterpros.ca/'
+          verify_legacy_redirect 'CANONICAL_INDEX' 'https://www.purewaterpros.ca/index.html' 'https://www.purewaterpros.ca/'
+          verify_legacy_redirect 'CANONICAL_BLOG_INDEX' 'https://www.purewaterpros.ca/blog/index.html' 'https://www.purewaterpros.ca/blog/'
+
+          unknown_code="$(curl -sS --max-redirs 0 -o /dev/null --retry 3 --retry-delay 2 -w '%{http_code}' "https://www.purewaterpros.ca/__pwp-404-check-${GITHUB_SHA}.html")"
+          echo "UNKNOWN_HTML HTTP=$unknown_code"
+          test "$unknown_code" = '404'
 
           echo 'Full-site production verification passed.'
 
