@@ -2,7 +2,8 @@
 declare(strict_types=1);
 
 $to = 'info@purewaterpros.ca';
-$fromSite = 'Pure Water Pros <no-reply@purewaterpros.ca>';
+$fromSite = 'Pure Water Pros <info@purewaterpros.ca>';
+$envelopeFrom = 'info@purewaterpros.ca';
 
 function clean_field(string $key, int $max = 4000): string {
     $value = isset($_POST[$key]) ? trim(strip_tags((string) $_POST[$key])) : '';
@@ -91,11 +92,26 @@ $body .= "Customer acknowledged that the requested date/time is not confirmed un
 $body .= "\n— Sent from purewaterpros.ca";
 
 $headers = "From: {$fromSite}\r\n";
+$headers .= "Sender: {$envelopeFrom}\r\n";
 $headers .= "Reply-To: {$safeReplyTo}\r\n";
 $headers .= "Content-Type: text/plain; charset=UTF-8\r\n";
+$headers .= "X-Pure-Water-Pros-Form: 2026-10-05\r\n";
 $headers .= "X-Mailer: PHP/" . phpversion();
 
-$sent = @mail($to, $subject, $body, $headers);
+// Use a real mailbox on the domain as both the visible and envelope sender.
+// GreenGeeks supports PHP mail(), but authenticated/domain-aligned senders are
+// more reliable than an unprovisioned no-reply address.
+$sent = @mail($to, $subject, $body, $headers, "-f{$envelopeFrom}");
+
+// Some shared-host configurations disallow the fifth mail() parameter. If that
+// happens, retry once using the same domain-aligned From header without it.
+if (!$sent) {
+    $sent = @mail($to, $subject, $body, $headers);
+}
+
+if (!$sent) {
+    error_log('Pure Water Pros contact form: mail() failed at ' . gmdate('c'));
+}
 
 if ($sent) {
     header('Location: /thank-you.html', true, 303);
