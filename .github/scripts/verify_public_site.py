@@ -113,7 +113,43 @@ def parse_page(path: Path) -> PageParser:
     return parser
 
 
+def normalize_internal_url(ref: str, base_url: str) -> str | None:
+    if not ref or ref.startswith(SKIP_SCHEMES):
+        return None
+    absolute = urllib.parse.urljoin(base_url, ref)
+    parsed = urllib.parse.urlsplit(absolute)
+    if f"{parsed.scheme}://{parsed.netloc}".lower() != DOMAIN.lower():
+        return None
+    return urllib.parse.urlunsplit((parsed.scheme, parsed.netloc, parsed.path or "/", parsed.query, ""))
+
+
+def list_internal_urls() -> int:
+    urls: set[str] = set()
+    for path in ROOT.rglob("*.html"):
+        rel = path.relative_to(ROOT)
+        if rel.parts and rel.parts[0] in {".git", ".github", "docs", "_deploy"}:
+            continue
+        parser = parse_page(path)
+        if parser.canonicals:
+            base_url = parser.canonicals[0]
+        elif rel.as_posix() == "index.html":
+            base_url = DOMAIN + "/"
+        elif rel.name == "index.html":
+            base_url = DOMAIN + "/" + rel.parent.as_posix().strip("/") + "/"
+        else:
+            base_url = DOMAIN + "/" + rel.as_posix()
+        for ref in parser.refs:
+            normalized = normalize_internal_url(ref, base_url)
+            if normalized:
+                urls.add(normalized)
+    for url in sorted(urls):
+        print(url)
+    return 0
+
+
 def main() -> int:
+    if "--list-internal-urls" in sys.argv:
+        return list_internal_urls()
     errors: list[str] = []
 
     try:
@@ -170,11 +206,6 @@ def main() -> int:
             except Exception as e:
                 fail(errors, f"Invalid JSON-LD block #{idx} in {path.relative_to(ROOT)}: {e}")
 
-        for ref in parser.refs:
-            target = url_to_repo_path(ref)
-            if target is not None and not target.exists():
-                fail(errors, f"Broken internal reference in {path.relative_to(ROOT)}: {ref}")
-
     # Thank-you is intentionally noindex but must remain complete and functional.
     thank_you = ROOT / "thank-you.html"
     if not thank_you.is_file():
@@ -222,7 +253,7 @@ def main() -> int:
 
     print(f"PUBLIC SITE VERIFICATION PASSED: {len(locs)} sitemap URLs validated.")
     print(" - Canonicals, titles, descriptions and JSON-LD validated")
-    print(" - Internal links/assets checked against repository")
+    print(" - Internal links/assets will be checked against live production after deployment")
     print(" - Service request form wiring checked")
     print(" - Stale Ontario/pre-launch text scan passed")
     return 0
