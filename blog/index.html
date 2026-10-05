@@ -15,6 +15,61 @@
 <style>
 .resource-grid{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:24px;align-items:stretch}.resource-card{grid-column:span 2;overflow:hidden;border:1px solid var(--line);border-radius:18px;background:#fff;box-shadow:0 12px 30px rgba(8,36,59,.07);transition:transform .2s ease,box-shadow .2s ease,border-color .2s ease}.resource-card:hover{transform:translateY(-3px);border-color:rgba(8,126,164,.45);box-shadow:0 18px 36px rgba(8,36,59,.11)}.resource-card>a{display:flex;height:100%;flex-direction:column;color:inherit;text-decoration:none}.resource-card-image{aspect-ratio:16/9;overflow:hidden;background:#eaf3f6}.resource-card-image img{display:block;width:100%;height:100%;object-fit:cover}.resource-card-content{display:flex;flex:1;flex-direction:column;padding:24px}.resource-card-content .eyebrow{margin-bottom:10px}.resource-card h2{margin:0 0 12px;font-size:clamp(23px,2.2vw,31px);line-height:1.14}.resource-card-copy{margin:0;color:var(--muted)}.resource-card-link{display:block;margin-top:auto;padding-top:20px;color:var(--blue);font-family:Manrope,sans-serif;font-weight:800}.resource-section-note{max-width:780px;margin:0 0 28px;color:var(--muted)}@media(max-width:980px){.resource-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.resource-card{grid-column:auto}}@media(max-width:680px){.resource-grid{grid-template-columns:1fr}.resource-card-content{padding:20px}}
 </style>
+<script type="application/ld+json">
+{
+  "@context":"https://schema.org",
+  "@graph":[
+    {
+      "@type":"Organization",
+      "@id":"https://www.purewaterpros.ca/#organization",
+      "name":"Pure Water Pros",
+      "url":"https://www.purewaterpros.ca/",
+      "logo":{"@type":"ImageObject","url":"https://www.purewaterpros.ca/assets/logo.png"},
+      "email":"info@purewaterpros.ca",
+      "telephone":"+1-778-400-1267",
+      "areaServed":[
+        {"@type":"City","name":"Victoria","addressRegion":"BC","addressCountry":"CA"},
+        {"@type":"City","name":"Langford","addressRegion":"BC","addressCountry":"CA"},
+        {"@type":"AdministrativeArea","name":"Greater Victoria","addressRegion":"BC","addressCountry":"CA"},
+        {"@type":"AdministrativeArea","name":"West Shore","addressRegion":"BC","addressCountry":"CA"}
+      ]
+    },
+    {
+      "@type":"WebSite",
+      "@id":"https://www.purewaterpros.ca/#website",
+      "url":"https://www.purewaterpros.ca/",
+      "name":"Pure Water Pros",
+      "publisher":{"@id":"https://www.purewaterpros.ca/#organization"},
+      "inLanguage":"en-CA"
+    },
+    {
+      "@type":["Blog","CollectionPage"],
+      "@id":"https://www.purewaterpros.ca/blog/#blog",
+      "url":"https://www.purewaterpros.ca/blog/",
+      "name":"Water Treatment Resources | Greater Victoria | Pure Water Pros",
+      "description":"Practical Greater Victoria water-treatment articles covering municipal water, private wells, filtration, RO, UV, water softeners, water testing and equipment service.",
+      "isPartOf":{"@id":"https://www.purewaterpros.ca/#website"},
+      "publisher":{"@id":"https://www.purewaterpros.ca/#organization"},
+      "inLanguage":"en-CA"
+    },
+    {
+      "@type":"ItemList",
+      "@id":"https://www.purewaterpros.ca/blog/#articles",
+      "name":"Pure Water Pros water treatment resources",
+      "numberOfItems":7,
+      "itemListElement":[
+        {"@type":"ListItem","position":1,"url":"https://www.purewaterpros.ca/blog/water-testing-victoria-bc-before-treatment.html","name":"Water Testing in Victoria, BC: What Should You Test Before Buying Water Treatment?"},
+        {"@type":"ListItem","position":2,"url":"https://www.purewaterpros.ca/blog/water-treatment-system-maintenance-victoria-bc.html","name":"Water Treatment System Maintenance in Victoria, BC"},
+        {"@type":"ListItem","position":3,"url":"https://www.purewaterpros.ca/blog/do-you-need-water-softener-victoria-bc.html","name":"Do Greater Victoria Homeowners Need a Water Softener?"},
+        {"@type":"ListItem","position":4,"url":"https://www.purewaterpros.ca/blog/does-your-private-well-need-uv-treatment-vancouver-island.html","name":"Does Your Private Well Need UV Treatment?"},
+        {"@type":"ListItem","position":5,"url":"https://www.purewaterpros.ca/blog/reverse-osmosis-victoria-do-you-need-ro.html","name":"Do You Need Reverse Osmosis in Victoria, BC?"},
+        {"@type":"ListItem","position":6,"url":"https://www.purewaterpros.ca/blog/well-water-rotten-egg-smell-vancouver-island.html","name":"Why Does My Well Water Smell Like Rotten Eggs?"},
+        {"@type":"ListItem","position":7,"url":"https://www.purewaterpros.ca/blog/greater-victoria-chloramine-water.html","name":"Why Does Greater Victoria Tap Water Taste or Smell Like Chlorine?"}
+      ]
+    }
+  ]
+}
+</script>
 </head>
 <body>
 <a class="skip-link" href="#main">Skip to content</a>
@@ -23,6 +78,7 @@
 <main id="main">
 <section class="article-hero" id="top"><div class="shell"><nav class="breadcrumbs" aria-label="Breadcrumb"><a href="/">Home</a><span>/</span><span>Resources</span></nav><p class="eyebrow">Water treatment information</p><h1>Practical water advice for Greater Victoria.</h1><p class="article-deck">Clear explanations about municipal water, private wells, filtration, reverse osmosis, UV and existing treatment equipment — without turning every water question into an equipment sale.</p></div></section>
 <section class="article-section"><div class="shell"><p class="resource-section-note">Browse practical guides written around the water problems homeowners actually see in Greater Victoria and across Vancouver Island.</p><div class="resource-grid">
+<article class="resource-card"><a href="/blog/water-testing-victoria-bc-before-treatment.html"><div class="resource-card-image"><img src="/assets/pure-water-pros-professional-hero.webp" alt="Residential water-treatment equipment used to illustrate a test-first treatment approach" loading="lazy" decoding="async"/></div><div class="resource-card-content"><p class="eyebrow">Water testing · October 5, 2026</p><h2>Water Testing in Victoria, BC: What Should You Test First?</h2><p class="resource-card-copy">How municipal-water and private-well homeowners can choose useful tests before buying filtration, softening, UV, RO or other treatment.</p><b class="resource-card-link">Read article →</b></div></a></article>
 <article class="resource-card"><a href="/blog/water-treatment-system-maintenance-victoria-bc.html"><div class="resource-card-image"><img src="/assets/field-experience/ro-under-sink.webp" alt="Prior field-experience example of an under-sink reverse osmosis system" loading="lazy" decoding="async"/></div><div class="resource-card-content"><p class="eyebrow">Service &amp; maintenance · September 24, 2026</p><h2>Water Treatment System Maintenance in Victoria, BC</h2><p class="resource-card-copy">What may be due on filters, RO, UV, softeners and treatment media — and what to check before replacing equipment.</p><b class="resource-card-link">Read article →</b></div></a></article>
 <article class="resource-card"><a href="/blog/do-you-need-water-softener-victoria-bc.html"><div class="resource-card-image"><img src="/assets/field-experience/uv-softener-treatment-room.webp" alt="Prior field-experience example of whole-home treatment equipment including water softening" loading="lazy" decoding="async"/></div><div class="resource-card-content"><p class="eyebrow">Water softeners · September 16, 2026</p><h2>Do Greater Victoria Homeowners Need a Water Softener?</h2><p class="resource-card-copy">Why Greater Victoria municipal water usually does not need softening, when private-well hardness testing matters, and what a softener actually solves.</p><b class="resource-card-link">Read article →</b></div></a></article>
 <article class="resource-card"><a href="/blog/does-your-private-well-need-uv-treatment-vancouver-island.html"><div class="resource-card-image"><img src="/assets/field-experience/uv-prefiltration-clean-install.webp" alt="Prior field-experience example of private-well pretreatment and UV disinfection equipment" loading="lazy" decoding="async"/></div><div class="resource-card-content"><p class="eyebrow">Private wells · September 16, 2026</p><h2>Does Your Private Well Need UV Treatment?</h2><p class="resource-card-copy">How bacteria testing, pretreatment, peak flow, maintenance and well conditions determine whether UV treatment makes sense.</p><b class="resource-card-link">Read article →</b></div></a></article>
