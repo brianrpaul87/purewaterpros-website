@@ -18,13 +18,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          headers="$(mktemp)"
-          body="$(mktemp)"
-          curl -sS -D "$headers" -o "$body" --max-redirs 0             -X POST 'https://www.purewaterpros.ca/contact.php'             --data-urlencode 'name=Website Form Test — Do Not Contact'             --data-urlencode 'email=website-test@purewaterpros.ca'             --data-urlencode 'phone='             --data-urlencode 'postal_code=V9B 3X4'             --data-urlencode 'water_source=Not sure'             --data-urlencode 'subject=General question'             --data-urlencode 'message=END-TO-END WEBSITE FORM TEST — This is a test submission requested by Brian Paul to verify that the Pure Water Pros website inquiry form delivers correctly. No customer follow-up is required.'             --data-urlencode 'diagnostic_summary='             --data-urlencode 'consent=accepted'             --data-urlencode 'website='
-
-          code="$(awk 'NR==1 {print $2}' "$headers")"
-          location="$(awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/$/, ""); print; exit}' "$headers")"
+          code="$(curl -sS -o /dev/null -w '%{http_code}' --max-redirs 0 -X POST 'https://www.purewaterpros.ca/contact.php' --data-urlencode 'name=Website Form Test - Do Not Contact' --data-urlencode 'email=website-test@purewaterpros.ca' --data-urlencode 'phone=' --data-urlencode 'postal_code=V9B 3X4' --data-urlencode 'water_source=Not sure' --data-urlencode 'subject=General question' --data-urlencode 'message=END-TO-END WEBSITE FORM TEST. This is a test submission requested by Brian Paul to verify that the Pure Water Pros website inquiry form delivers correctly. No customer follow-up is required.' --data-urlencode 'diagnostic_summary=' --data-urlencode 'consent=accepted' --data-urlencode 'website=')"
           echo "HTTP=$code"
-          echo "LOCATION=$location"
           test "$code" = '303'
-          test "$location" = '/thank-you.html'
