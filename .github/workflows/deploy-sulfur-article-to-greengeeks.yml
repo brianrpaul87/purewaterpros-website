@@ -253,12 +253,49 @@ jobs:
           grep -Fq '/assets/well-water-sulfur-vancouver-island.webp' /tmp/live-sulfur.html
           ! grep -Fq 'cdn.marblism.com/l8kmBsdipVs.webp' /tmp/live-sulfur.html
 
+          verify_current_page() {
+            local label="$1"
+            local url="$2"
+            local canonical="$3"
+            local tmp="/tmp/pwp-current-$(printf '%s' "$label" | tr '[:upper:]' '[:lower:]' | tr -c 'a-z0-9' '-').html"
+            local http
+
+            http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o "$tmp" -w '%{http_code}' "$url?deploy-check=${GITHUB_SHA}")"
+            echo "$label HTTP=$http"
+            test "$http" = '200'
+            grep -Fq '778-400-1267' "$tmp"
+            grep -Fq 'rel="canonical"' "$tmp"
+            grep -Fq "$canonical" "$tmp"
+            ! grep -Eiq 'Now booking September|soft launch|Durham|Peterborough|Omemee|905-242-3846|705-768-7273' "$tmp"
+          }
+
+          verify_current_page 'FILTRATION_PAGE' 'https://www.purewaterpros.ca/water-filtration-victoria.html' 'https://www.purewaterpros.ca/water-filtration-victoria.html'
+          verify_current_page 'SOFTENER_PAGE' 'https://www.purewaterpros.ca/water-softeners-victoria.html' 'https://www.purewaterpros.ca/water-softeners-victoria.html'
+          verify_current_page 'RO_PAGE' 'https://www.purewaterpros.ca/reverse-osmosis-victoria.html' 'https://www.purewaterpros.ca/reverse-osmosis-victoria.html'
+          verify_current_page 'UV_PAGE' 'https://www.purewaterpros.ca/uv-water-treatment-victoria.html' 'https://www.purewaterpros.ca/uv-water-treatment-victoria.html'
+          verify_current_page 'IRON_SULFUR_PAGE' 'https://www.purewaterpros.ca/iron-sulfur-water-treatment-victoria.html' 'https://www.purewaterpros.ca/iron-sulfur-water-treatment-victoria.html'
+          verify_current_page 'CHEMICAL_INJECTION_PAGE' 'https://www.purewaterpros.ca/chemical-injection-water-treatment-victoria.html' 'https://www.purewaterpros.ca/chemical-injection-water-treatment-victoria.html'
+          verify_current_page 'LOW_YIELD_PAGE' 'https://www.purewaterpros.ca/low-yield-well-storage-victoria.html' 'https://www.purewaterpros.ca/low-yield-well-storage-victoria.html'
+          verify_current_page 'SERVICE_PAGE' 'https://www.purewaterpros.ca/water-treatment-service-victoria.html' 'https://www.purewaterpros.ca/water-treatment-service-victoria.html'
+          verify_current_page 'SERVICE_AREAS_PAGE' 'https://www.purewaterpros.ca/service-areas.html' 'https://www.purewaterpros.ca/service-areas.html'
+          verify_current_page 'LANGFORD_PAGE' 'https://www.purewaterpros.ca/water-treatment-langford-west-shore.html' 'https://www.purewaterpros.ca/water-treatment-langford-west-shore.html'
+          verify_current_page 'PRIVACY_PAGE' 'https://www.purewaterpros.ca/privacy-policy.html' 'https://www.purewaterpros.ca/privacy-policy.html'
+          verify_current_page 'RO_ARTICLE_CURRENT_COPY' 'https://www.purewaterpros.ca/blog/reverse-osmosis-victoria-do-you-need-ro.html' 'https://www.purewaterpros.ca/blog/reverse-osmosis-victoria-do-you-need-ro.html'
+
+          thank_you_http="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o /tmp/live-thank-you.html -w '%{http_code}' "https://www.purewaterpros.ca/thank-you.html?deploy-check=${GITHUB_SHA}")"
+          echo "THANK_YOU HTTP=$thank_you_http"
+          test "$thank_you_http" = '200'
+          grep -Fq '778-400-1267' /tmp/live-thank-you.html
+          ! grep -Eiq 'Now booking September|soft launch|Durham|Peterborough|Omemee|905-242-3846|705-768-7273' /tmp/live-thank-you.html
+
           verify_legacy_redirect() {
             local label="$1"
             local source_url="$2"
             local expected_location="$3"
             local headers code location
-            headers="$(curl -sS -I --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' "$source_url")"
+            # Use a real GET request without following redirects. Search engines crawl
+            # with GET, and this catches hosting/CDN behavior that a HEAD-only check can miss.
+            headers="$(curl -sS --max-redirs 0 -D - -o /dev/null --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' "$source_url")"
             code="$(printf '%s\n' "$headers" | awk 'NR==1 {print $2}')"
             location="$(printf '%s\n' "$headers" | awk 'BEGIN{IGNORECASE=1} /^location:/ {sub(/^[^:]+:[[:space:]]*/, ""); sub(/\r$/, ""); print; exit}')"
             echo "$label HTTP=$code LOCATION=$location"
@@ -274,6 +311,10 @@ jobs:
           verify_legacy_redirect 'LEGACY_CITY_WATER' 'https://www.purewaterpros.ca/city-water-issues.html' 'https://www.purewaterpros.ca/water-filtration-victoria.html'
           verify_legacy_redirect 'LEGACY_WELL_WATER' 'https://www.purewaterpros.ca/well-water-issues.html' 'https://www.purewaterpros.ca/water-filtration-victoria.html'
           verify_legacy_redirect 'LEGACY_GALLERY' 'https://www.purewaterpros.ca/gallery.html' 'https://www.purewaterpros.ca/'
+          verify_legacy_redirect 'LEGACY_SERVICES_RO' 'https://www.purewaterpros.ca/services/ro.html' 'https://www.purewaterpros.ca/reverse-osmosis-victoria.html'
+          verify_legacy_redirect 'LEGACY_SERVICES_UV' 'https://www.purewaterpros.ca/services/uv.html' 'https://www.purewaterpros.ca/uv-water-treatment-victoria.html'
+          verify_legacy_redirect 'LEGACY_SERVICES_SOFTENER' 'https://www.purewaterpros.ca/services/softeners.html' 'https://www.purewaterpros.ca/water-softeners-victoria.html'
+          verify_legacy_redirect 'LEGACY_SERVICES_IRON_SULFUR' 'https://www.purewaterpros.ca/services/iron-sulfur.html' 'https://www.purewaterpros.ca/iron-sulfur-water-treatment-victoria.html'
 
           echo 'Full-site production verification passed.'
 
