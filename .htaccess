@@ -32,11 +32,7 @@ RewriteRule ^city-water-issues\.html$ https://www.purewaterpros.ca/water-filtrat
 RewriteRule ^well-water-issues\.html$ https://www.purewaterpros.ca/water-filtration-victoria.html [R=301,L,NC]
 RewriteRule ^gallery\.(?:html|php)$ https://www.purewaterpros.ca/ [R=301,L,NC]
 
-# Retire other old/unknown HTML pages while allowing the current BC website pages.
-# Blog pages are intentionally excluded from the legacy-page redirect.
-RewriteCond %{REQUEST_URI} !^/blog(?:/.*)?$ [NC]
-RewriteCond %{REQUEST_URI} !^/(?:thank-you|water-filtration-victoria|water-softeners-victoria|reverse-osmosis-victoria|uv-water-treatment-victoria|iron-sulfur-water-treatment-victoria|chemical-injection-water-treatment-victoria|low-yield-well-storage-victoria|water-treatment-service-victoria|service-areas|water-treatment-langford-west-shore|privacy-policy)\.html$ [NC]
-RewriteRule ^.+\.html$ https://www.purewaterpros.ca/ [R=301,L]
+# Known legacy URLs are redirected explicitly above. Unknown URLs fall through normally.
 
 <IfModule mod_deflate.c>
   AddOutputFilterByType DEFLATE text/html text/plain text/css application/javascript application/json application/xml image/svg+xml
