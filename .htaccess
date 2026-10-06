@@ -20,9 +20,12 @@ RewriteRule ^index\.html$ https://www.purewaterpros.ca/ [R=301,L]
 RewriteCond %{THE_REQUEST} \s/+blog/index\.html(?:[\s?]) [NC]
 RewriteRule ^blog/index\.html$ https://www.purewaterpros.ca/blog/ [R=301,L]
 
-# Permanent migration map for retired Ontario-era URLs.
-# Keep these redirects even after the old source files are removed so search
-# engines and old backlinks resolve to the closest current BC replacement.
+# Retired Ontario-era URLs.
+# Return 410 only where the old content has no meaningful current replacement.
+# Keep one-to-one 301 redirects where a clear BC replacement exists so search
+# engines and old backlinks can consolidate onto the current page.
+RewriteRule ^gallery\.(?:html|php)$ - [G,L,NC]
+
 RewriteRule ^contact\.html$ https://www.purewaterpros.ca/#launch-request [R=301,L,NE,NC]
 RewriteRule ^(?:services/)?ro\.html$ https://www.purewaterpros.ca/reverse-osmosis-victoria.html [R=301,L,NC]
 RewriteRule ^(?:services/)?softeners\.html$ https://www.purewaterpros.ca/water-softeners-victoria.html [R=301,L,NC]
@@ -30,7 +33,6 @@ RewriteRule ^(?:services/)?uv\.html$ https://www.purewaterpros.ca/uv-water-treat
 RewriteRule ^(?:services/)?iron-sulfur\.html$ https://www.purewaterpros.ca/iron-sulfur-water-treatment-victoria.html [R=301,L,NC]
 RewriteRule ^city-water-issues\.html$ https://www.purewaterpros.ca/water-filtration-victoria.html [R=301,L,NC]
 RewriteRule ^well-water-issues\.html$ https://www.purewaterpros.ca/water-filtration-victoria.html [R=301,L,NC]
-RewriteRule ^gallery\.(?:html|php)$ https://www.purewaterpros.ca/ [R=301,L,NC]
 
 # Known legacy URLs are redirected explicitly above. Unknown URLs fall through normally.
 
