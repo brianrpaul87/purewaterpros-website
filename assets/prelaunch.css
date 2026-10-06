@@ -35,7 +35,7 @@ button, .button { -webkit-tap-highlight-color: transparent; }
 .site-header { position: sticky; top: 0; z-index: 50; border-bottom: 1px solid rgba(8, 36, 59, .08); background: rgba(255, 255, 255, .94); backdrop-filter: blur(14px); }
 .header-inner { min-height: 78px; display: flex; align-items: center; justify-content: space-between; gap: 24px; }
 .brand { display: inline-flex; align-items: center; gap: 12px; text-decoration: none; min-width: 210px; }
-.brand img { width: 64px; height: 64px; flex: 0 0 64px; object-fit: contain; border-radius: 0; }
+.brand img { width: 64px; height: 64px; flex: 0 0 64px !important; object-fit: contain; border-radius: 0; }
 .brand span { display: grid; line-height: 1.15; }
 .brand strong { font-family: Manrope, sans-serif; font-size: 18px; color: var(--navy); }
 .brand small { margin-top: 5px; color: var(--muted); font-size: 12px; }
@@ -164,7 +164,7 @@ legend { width: 100%; margin-bottom: 12px; color: var(--navy); font-family: Manr
   .shell { width: min(100% - 28px, 1160px); }
   .launch-strip { font-size: 13px; }
   .header-inner { min-height: 70px; }
-  .brand img { width: 52px; height: 52px; flex-basis: 52px; }
+  .brand img { width: 52px; height: 52px; flex: 0 0 52px !important; }
   .brand small { display: none; }
   .header-inner > .button { display: none; }
   .desktop-nav { margin-inline: -2px; }
