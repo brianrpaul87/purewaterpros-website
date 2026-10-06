@@ -371,7 +371,13 @@ jobs:
           verify_legacy_redirect 'LEGACY_IRON_SULFUR' 'https://www.purewaterpros.ca/iron-sulfur.html' 'https://www.purewaterpros.ca/iron-sulfur-water-treatment-victoria.html'
           verify_legacy_redirect 'LEGACY_CITY_WATER' 'https://www.purewaterpros.ca/city-water-issues.html' 'https://www.purewaterpros.ca/water-filtration-victoria.html'
           verify_legacy_redirect 'LEGACY_WELL_WATER' 'https://www.purewaterpros.ca/well-water-issues.html' 'https://www.purewaterpros.ca/water-filtration-victoria.html'
-          verify_legacy_redirect 'LEGACY_GALLERY' 'https://www.purewaterpros.ca/gallery.html' 'https://www.purewaterpros.ca/'
+          gallery_code="$(curl -sS --max-redirs 0 -o /dev/null --retry 3 --retry-delay 2 -w '%{http_code}' 'https://www.purewaterpros.ca/gallery.html')"
+          echo "LEGACY_GALLERY HTTP=$gallery_code"
+          test "$gallery_code" = '410'
+
+          gallery_php_code="$(curl -sS --max-redirs 0 -o /dev/null --retry 3 --retry-delay 2 -w '%{http_code}' 'https://www.purewaterpros.ca/gallery.php')"
+          echo "LEGACY_GALLERY_PHP HTTP=$gallery_php_code"
+          test "$gallery_php_code" = '410'
           verify_legacy_redirect 'LEGACY_SERVICES_RO' 'https://www.purewaterpros.ca/services/ro.html' 'https://www.purewaterpros.ca/reverse-osmosis-victoria.html'
           verify_legacy_redirect 'LEGACY_SERVICES_UV' 'https://www.purewaterpros.ca/services/uv.html' 'https://www.purewaterpros.ca/uv-water-treatment-victoria.html'
           verify_legacy_redirect 'LEGACY_SERVICES_SOFTENER' 'https://www.purewaterpros.ca/services/softeners.html' 'https://www.purewaterpros.ca/water-softeners-victoria.html'
