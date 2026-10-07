@@ -18,14 +18,21 @@
   "@context": "https://schema.org",
   "@graph": [
     {
-      "@type": "Organization",
+      "@type": "HomeAndConstructionBusiness",
       "@id": "https://www.purewaterpros.ca/#organization",
       "name": "Pure Water Pros",
       "url": "https://www.purewaterpros.ca/",
       "sameAs": ["https://maps.app.goo.gl/EMkLcDywowe5pJZe8"],
       "logo": {"@type":"ImageObject","url":"https://www.purewaterpros.ca/assets/logo.png"},
+      "image": "https://www.purewaterpros.ca/assets/pure-water-pros-victoria-og.png",
       "email": "info@purewaterpros.ca",
       "telephone": "+1-778-400-1267",
+      "address": {"@type":"PostalAddress","addressLocality":"Langford","addressRegion":"BC","addressCountry":"CA"},
+      "openingHoursSpecification": [
+        {"@type":"OpeningHoursSpecification","dayOfWeek":["Monday","Tuesday","Wednesday","Thursday","Friday"],"opens":"08:00","closes":"21:00"},
+        {"@type":"OpeningHoursSpecification","dayOfWeek":["Saturday","Sunday"],"opens":"10:00","closes":"18:00"}
+      ],
+      "priceRange": "$$",
       "slogan": "Crystal clear water. Every tap. Every time.",
       "areaServed": [
         {
@@ -220,7 +227,7 @@
     <div class="footer-brand">
       <strong>Pure Water Pros</strong>
       <p class="footer-slogan">Crystal clear water. Every tap. Every time.</p>
-      <p>Water treatment, filtration, equipment service and maintenance throughout Greater Victoria and the West Shore.</p>
+      <p>Based in Langford, BC, serving Greater Victoria and the West Shore with water treatment, filtration, equipment service and maintenance.</p>
       <a class="footer-email" href="mailto:info@purewaterpros.ca">info@purewaterpros.ca</a>
 <br/>
 <a class="footer-email" href="tel:+17784001267">778-400-1267</a>
