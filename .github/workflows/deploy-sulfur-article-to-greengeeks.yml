@@ -287,7 +287,7 @@ jobs:
             code="$(curl -sS -L --retry 3 --retry-delay 2 -H 'Cache-Control: no-cache' -o "$tmp_file" -w '%{http_code}' "$sitemap_url?deploy-check=${GITHUB_SHA}")"
             echo "SITEMAP_URL $sitemap_url HTTP=$code"
             test "$code" = '200'
-            ! grep -Eiq 'Now booking September|soft launch|Pre-launch:|Opening August 2026|Request August follow-up|Durham, Peterborough|Omemee|905-242-3846|705-768-7273' "$tmp_file"
+            ! grep -Eiq 'Now booking September|soft launch|Pre-launch:|Opening August 2026|Request August follow-up|Durham, Peterborough|Omemee|905-242-3846|705-768-7273|This image is illustrative and is not presented as a specific current Pure Water Pros installation|municipal-water filtration, softeners, reverse osmosis and equipment service' "$tmp_file"
             rm -f "$tmp_file"
           done < /tmp/pwp-sitemap-urls.txt
 
