@@ -26,7 +26,7 @@
 <meta content="Pure Water Pros" property="og:site_name"/>
 <meta content="en_CA" property="og:locale"/>
 <meta content="#08243b" name="theme-color"/>
-<link as="image" href="/assets/pwp-hero-coastal-repaired.webp" rel="preload" type="image/webp"/>
+<link as="image" href="/assets/pwp-real-coast-hero.webp" rel="preload" type="image/webp"/>
 <link href="https://fonts.googleapis.com" rel="preconnect"/>
 <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
 <link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&amp;family=Source+Sans+3:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
@@ -159,6 +159,39 @@
 .pwp-reviews{font-size:12px;gap:6px 10px;margin-top:16px}.pwp-stars{font-size:19px}
 .pwp-feature-strip{margin-top:-45px;padding-bottom:38px}.pwp-feature-grid{width:calc(100% - 28px);grid-template-columns:1fr;gap:13px}
 .pwp-feature-card,.pwp-feature-card:last-child{grid-column:auto;min-height:168px;padding:18px 15px}.pwp-feature-copy{max-width:69%}.pwp-feature-copy strong{font-size:18px}.pwp-feature-copy small{font-size:13px}.pwp-feature-img{width:48%}
+}
+</style>
+
+<style id="pwp-authentic-photo-stabilization">
+/* Stable hero: one genuine Vancouver Island photograph, never stretched. */
+.site-header{position:sticky!important;top:0!important;left:auto!important;width:100%!important;background:rgba(255,255,255,.98)!important;border-bottom:1px solid #dcebf0!important;box-shadow:0 2px 12px rgba(5,36,57,.08);backdrop-filter:none!important}
+.site-header .header-inner{min-height:89px}
+.pwp-hero{min-height:545px!important;padding:65px 0 75px!important;background-image:linear-gradient(90deg,rgba(4,27,46,.92) 0%,rgba(5,38,63,.84) 28%,rgba(7,40,65,.52) 50%,rgba(5,36,60,.08) 82%),url('/assets/pwp-real-coast-hero.webp')!important;background-size:cover!important;background-position:center 49%!important;background-repeat:no-repeat!important}
+.pwp-hero::before{display:none!important}
+.pwp-hero-shell{position:relative;z-index:1;width:min(1720px,calc(100% - 140px))}
+.pwp-hero-copy{width:min(680px,60%);max-width:680px}
+.pwp-hero h1{font-size:clamp(48px,5.1vw,75px);line-height:1.04}
+.pwp-hero .eyebrow{font-size:12px}
+.pwp-hero-promise{font-size:clamp(21px,2.05vw,27px);margin-top:20px}
+.pwp-hero-lead{font-size:17px;max-width:585px;line-height:1.45}
+.pwp-feature-strip{margin-top:-25px!important;padding:0 0 44px;background:#f6fbfd}
+.pwp-feature-grid{width:min(1720px,calc(100% - 140px));gap:14px}
+.pwp-feature-card{min-height:182px}
+@media(max-width:980px){
+.pwp-hero{min-height:530px!important;padding:51px 0 65px!important}
+.pwp-hero-shell,.pwp-feature-grid{width:calc(100% - 56px)}
+.pwp-hero-copy{width:min(680px,80%)}
+.pwp-feature-grid{grid-template-columns:1fr 1fr}
+}
+@media(max-width:680px){
+.site-header .header-inner{min-height:72px}
+.pwp-hero{min-height:0!important;padding:45px 0 64px!important;background-image:linear-gradient(90deg,rgba(3,27,47,.91),rgba(4,30,50,.78)),url('/assets/pwp-real-coast-hero.webp')!important;background-size:cover!important;background-position:29% center!important}
+.pwp-hero-shell,.pwp-feature-grid{width:calc(100% - 32px)}
+.pwp-hero-copy{width:100%}
+.pwp-hero h1{font-size:clamp(40px,11.8vw,55px)}
+.pwp-feature-strip{margin-top:0!important}
+.pwp-feature-grid{grid-template-columns:1fr}
+.pwp-hero-lead{font-size:16px}
 }
 </style>
 </head>
