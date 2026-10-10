@@ -143,24 +143,18 @@
 .pwp-feature-copy b{font-weight:800}
 @media(max-width:560px){.site-header .brand img{width:43px!important;height:52px!important;flex-basis:43px!important}}
 
-/* pwp-photo-card-readability-20261010: solid white copy field, imagery only on right */
-.pwp-feature-card{isolation:isolate}
-.pwp-feature-card::before{
-  content:"";position:absolute;inset:0;z-index:1;pointer-events:none;
-  background:linear-gradient(90deg,#fff 0%,#fff 73%,rgba(255,255,255,.96) 80%,rgba(255,255,255,0) 100%);
-}
-.pwp-feature-card .pwp-feature-img{
-  right:0;width:35%;height:100%;opacity:1;object-fit:cover;
-  -webkit-mask-image:linear-gradient(90deg,transparent 0%,#000 43%);
-  mask-image:linear-gradient(90deg,transparent 0%,#000 43%);
-}
-.pwp-feature-icon,.pwp-feature-copy{position:relative;z-index:2}
-.pwp-feature-copy{max-width:61%;min-width:0}
-@media(max-width:560px){
-  .pwp-feature-card::before{background:linear-gradient(90deg,#fff 0%,#fff 81%,rgba(255,255,255,.97) 87%,rgba(255,255,255,0) 100%)}
-  .pwp-feature-card .pwp-feature-img{width:28%}
-  .pwp-feature-copy{max-width:76%}
-}
+/* Approved 2026-10-10 card redesign: complete photos above solid-white text. */
+.pwp-feature-card{display:flex!important;flex-direction:column!important;align-items:stretch!important;gap:0!important;padding:0!important;min-height:0!important;isolation:isolate!important;overflow:hidden!important;background:#fff!important}
+.pwp-feature-card::before{content:none!important;display:none!important}
+.pwp-feature-card .pwp-feature-img{position:static!important;display:block!important;inset:auto!important;width:100%!important;height:185px!important;object-fit:cover!important;object-position:center!important;opacity:1!important;-webkit-mask-image:none!important;mask-image:none!important;flex:none!important;z-index:0!important}
+.pwp-feature-body{display:flex!important;align-items:flex-start!important;gap:13px!important;flex:1 1 auto!important;padding:19px 19px 22px!important;background:#fff!important;color:#08243b!important}
+.pwp-feature-card .pwp-feature-icon{position:relative!important;z-index:1!important;flex:0 0 40px!important;width:40px!important}
+.pwp-feature-card .pwp-feature-copy{position:relative!important;z-index:1!important;min-width:0!important;max-width:none!important;flex:1 1 auto!important}
+.pwp-feature-card .pwp-feature-copy strong{display:block!important;font-size:18px!important;line-height:1.22!important;margin:0 0 9px!important}
+.pwp-feature-card .pwp-feature-copy small{display:block!important;font-size:14px!important;line-height:1.4!important;margin:0 0 11px!important}
+.pwp-feature-card .pwp-feature-copy b{display:block!important;font-size:13px!important;line-height:1.4!important}
+@media(max-width:1190px){.pwp-feature-card .pwp-feature-img{height:175px!important}.pwp-feature-body{padding:17px 15px 19px!important;gap:10px!important}.pwp-feature-card .pwp-feature-icon{flex:0 0 35px!important;width:35px!important}}
+@media(max-width:560px){.pwp-feature-card .pwp-feature-img{height:180px!important}.pwp-feature-body{padding:17px 16px 19px!important}.pwp-feature-card .pwp-feature-copy strong{font-size:18px!important}.pwp-feature-card .pwp-feature-copy small{font-size:13px!important}}
 </style>
 
 </head>
@@ -200,19 +194,19 @@
 <section class="pwp-feature-strip" aria-label="Find water treatment services">
   <div class="shell pwp-feature-grid">
     <a class="pwp-feature-card" href="/iron-sulfur-water-treatment-victoria.html">
-      <img class="pwp-feature-img" src="/assets/pwp-card-well.webp" width="191" height="198" decoding="async" loading="lazy" alt=""/>
-      <span class="pwp-feature-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 23 24 8l18 15M11 20v23h26V20M19 43V31h10v12"/></svg></span>
-      <span class="pwp-feature-copy"><strong>Well Water Treatment</strong><small>Iron, sulfur, sediment, UV and filtration solutions for private wells.</small><b>Explore Solutions →</b></span>
+      <img class="pwp-feature-img" src="/assets/pwp-card-2026-wellhead.webp" width="465" height="184" decoding="async" loading="lazy" alt=""/>
+      <span class="pwp-feature-body"><span class="pwp-feature-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M6 23 24 8l18 15M11 20v23h26V20M19 43V31h10v12"/></svg></span>
+      <span class="pwp-feature-copy"><strong>Well Water Treatment</strong><small>Iron, sulfur, sediment, UV and filtration solutions for private wells.</small><b>Explore Solutions →</b></span></span>
     </a>
     <a class="pwp-feature-card" href="/reverse-osmosis-victoria.html">
-      <img class="pwp-feature-img" src="/assets/pwp-card-drinking.webp" width="154" height="198" decoding="async" loading="lazy" alt=""/>
-      <span class="pwp-feature-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 8h30l-4 32H13L9 8Z"/><path d="M13 24c7-5 14 5 21 0"/></svg></span>
-      <span class="pwp-feature-copy"><strong>Drinking Water Systems</strong><small>Reverse osmosis and drinking-water filtration for better taste.</small><b>Explore Solutions →</b></span>
+      <img class="pwp-feature-img" src="/assets/pwp-card-2026-reverse-osmosis.webp" width="432" height="184" decoding="async" loading="lazy" alt=""/>
+      <span class="pwp-feature-body"><span class="pwp-feature-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 8h30l-4 32H13L9 8Z"/><path d="M13 24c7-5 14 5 21 0"/></svg></span>
+      <span class="pwp-feature-copy"><strong>Drinking Water Systems</strong><small>Reverse osmosis and drinking-water filtration for better taste.</small><b>Explore Solutions →</b></span></span>
     </a>
     <a class="pwp-feature-card" href="/water-treatment-service-victoria.html">
-      <img class="pwp-feature-img" src="/assets/pwp-card-service.webp" width="223" height="196" decoding="async" loading="lazy" alt=""/>
-      <span class="pwp-feature-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 9 28 29M36 9 9 37M10 8l-2 7 6 2 5-6M31 35l5 5 5-5-5-5M36 8a10 10 0 0 0-11 13"/></svg></span>
-      <span class="pwp-feature-copy"><strong>Service &amp; Repairs</strong><small>Softeners, filters, UV systems and RO equipment service.</small><b>Book Service →</b></span>
+      <img class="pwp-feature-img" src="/assets/pwp-card-2026-service.webp" width="462" height="184" decoding="async" loading="lazy" alt=""/>
+      <span class="pwp-feature-body"><span class="pwp-feature-icon"><svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m11 9 28 29M36 9 9 37M10 8l-2 7 6 2 5-6M31 35l5 5 5-5-5-5M36 8a10 10 0 0 0-11 13"/></svg></span>
+      <span class="pwp-feature-copy"><strong>Service &amp; Repairs</strong><small>Softeners, filters, UV systems and RO equipment service.</small><b>Book Service →</b></span></span>
     </a>
   </div>
 </section>
