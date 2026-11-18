@@ -1,44 +1,70 @@
-name: Check Childcare Harbour hosting connection safely
+name: Deploy private Childcare Harbour demo through isolated bridge
 on:
   push:
     branches: [codex/childcare-deployment-bridge]
     paths: [.github/workflows/childcare-bridge-check.yml]
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: childcare-harbour-bridge
+  cancel-in-progress: false
 jobs:
-  inspect:
+  publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
-      - name: Inspect connection and deployment lock without changes
+      - name: Generate one-time transfer key and publish its public half
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out harbour-key.pem 2>/dev/null
+          openssl pkey -in harbour-key.pem -pubout -out harbour-public.pem
+          python3 - <<'PY'
+          import base64,json,os,urllib.request
+          public=open('harbour-public.pem','rb').read()
+          payload=json.dumps({'message':'Publish one-time transfer public key','content':base64.b64encode(public).decode(),'branch':'codex/childcare-deployment-bridge'}).encode()
+          req=urllib.request.Request('https://api.github.com/repos/brianrpaul87/purewaterpros-website/contents/childcare-bridge/ca52fae2-public.pem',data=payload,method='PUT',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'})
+          with urllib.request.urlopen(req,timeout=20) as response:
+              if response.status != 201: raise RuntimeError('Public-key publication failed')
+          print('One-time public key is ready.')
+          PY
+      - name: Wait for encrypted release and verify original bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          python3 - <<'PY'
+          import base64,json,time,urllib.request,urllib.error,os
+          url='https://api.github.com/repos/brianrpaul87/purewaterpros-website/contents/childcare-bridge/ca52fae2-payload.json?ref=codex%2Fchildcare-deployment-bridge'
+          for i in range(170):
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'}),timeout=15) as r: obj=json.load(r)
+                  payload=json.loads(base64.b64decode(obj['content']))
+                  open('harbour-key.enc','wb').write(base64.b64decode(payload['key'],validate=True))
+                  open('harbour-release.enc','wb').write(base64.b64decode(payload['data'],validate=True))
+                  print('Encrypted package received.')
+                  break
+              except urllib.error.HTTPError as e:
+                  if e.code != 404: raise
+                  time.sleep(5)
+          else: raise TimeoutError('Encrypted release did not arrive')
+          PY
+          openssl pkeyutl -decrypt -inkey harbour-key.pem -in harbour-key.enc -out harbour-pass.txt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:harbour-pass.txt -in harbour-release.enc -out harbour-release.tar.gz
+          echo '71a4c0530dc78792e19ac0adc3f52c404723a5e192c21c284d2b5f33e829e3b2  harbour-release.tar.gz' | sha256sum -c
+          mkdir harbour-release
+          tar -xzf harbour-release.tar.gz -C harbour-release
+          rm -f harbour-key.pem harbour-pass.txt
+      - name: Deploy and verify only the Childcare Harbour folder
         env:
           GREENGEEKS_FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
           GREENGEEKS_FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
           GREENGEEKS_REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
+          GITHUB_SHA: ca52fae4d0f6aa96aebe5fda326b5703a4d7e0b5
         run: |
-          python3 - <<'PY'
-          import ftplib,ssl,os,io,hashlib
-          phase='connect'
-          try:
-              with ftplib.FTP_TLS(context=ssl.create_default_context(),timeout=25) as ftp:
-                  ftp.connect('mtl203.greengeeks.net',21)
-                  phase='login';ftp.login(os.environ['GREENGEEKS_FTP_USERNAME'],os.environ['GREENGEEKS_FTP_PASSWORD'])
-                  phase='secure data';ftp.prot_p()
-                  root=os.environ.get('GREENGEEKS_REMOTE_ROOT','').rstrip('/')
-                  if root not in ('','/public_html','/home/purewat1/public_html'): raise ValueError('Unexpected FTP root')
-                  base=root+'/childcare-harbour'
-                  phase='childcare directory';ftp.cwd(base)
-                  if ftp.pwd().rstrip('/')!=base: raise ValueError('Unexpected directory')
-                  phase='runtime read';data=io.BytesIO();ftp.retrbinary('RETR '+base+'/dist/assets.js',data.write)
-                  print('New runtime assets present:',hashlib.sha256(data.getvalue()).hexdigest()=='e5984fb383c7e74df9dfb1fe6ee2938a14b1ec5c2e7a66c112f39c6e56689aba')
-                  phase='lock inspection'
-                  try:
-                      ftp.cwd(base+'/.harbour-deploy/lock')
-                      print('Deployment lock: present')
-                  except ftplib.error_perm as e:
-                      print('Deployment lock: missing or inaccessible',str(e)[:3])
-                  print('Read-only inspection completed.')
-          except Exception as e:
-              print('Inspection failed at:',phase,'error type:',type(e).__name__)
-              raise SystemExit(1)
-          PY
+          set -euo pipefail
+          cd "$RUNNER_TEMP/harbour-release"
+          python3 scripts/deploy-greengeeks.py
