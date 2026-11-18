@@ -1,0 +1,12 @@
+name: Check isolated Childcare Harbour deployment bridge
+on:
+  push:
+    branches: [codex/childcare-deployment-bridge]
+    paths: [.github/workflows/childcare-bridge-check.yml]
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo 'Isolated deployment bridge check'
