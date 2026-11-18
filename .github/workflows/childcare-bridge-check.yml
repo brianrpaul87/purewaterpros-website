@@ -25,7 +25,7 @@ jobs:
           import base64,json,os,urllib.request
           public=open('harbour-public.pem','rb').read()
           payload=json.dumps({'message':'Publish one-time transfer public key','content':base64.b64encode(public).decode(),'branch':'codex/childcare-deployment-bridge'}).encode()
-          req=urllib.request.Request('https://api.github.com/repos/brianrpaul87/purewaterpros-website/contents/childcare-bridge/8cd03d1-public.pem',data=payload,method='PUT',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'})
+          req=urllib.request.Request('https://api.github.com/repos/brianrpaul87/purewaterpros-website/contents/childcare-bridge/e814a99-public.pem',data=payload,method='PUT',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'})
           with urllib.request.urlopen(req,timeout=20) as response:
               if response.status != 201: raise RuntimeError('Public-key publication failed')
           print('One-time public key is ready.')
@@ -36,7 +36,7 @@ jobs:
           cd "$RUNNER_TEMP"
           python3 - <<'PY'
           import base64,json,time,urllib.request,urllib.error
-          url='https://api.github.com/repos/brianrpaul87/purewaterpros-website/contents/childcare-bridge/8cd03d1-payload.json?ref=codex%2Fchildcare-deployment-bridge'
+          url='https://api.github.com/repos/brianrpaul87/purewaterpros-website/contents/childcare-bridge/e814a99-payload.json?ref=codex%2Fchildcare-deployment-bridge'
           for i in range(170):
               try:
                   with urllib.request.urlopen(url,timeout=15) as r: obj=json.load(r)
@@ -52,7 +52,7 @@ jobs:
           PY
           openssl pkeyutl -decrypt -inkey harbour-key.pem -in harbour-key.enc -out harbour-pass.txt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256
           openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:harbour-pass.txt -in harbour-release.enc -out harbour-release.tar.gz
-          echo '902b4d107e801849d0b4859ec771b14398d255ff4eaae9008068023e57880195  harbour-release.tar.gz' | sha256sum -c
+          echo '2b9ee158ab4ad808ca3a25ecf272b3f6540632b124d359b73bc63cc04894596e  harbour-release.tar.gz' | sha256sum -c
           mkdir harbour-release
           tar -xzf harbour-release.tar.gz -C harbour-release
           rm -f harbour-key.pem harbour-pass.txt
@@ -61,7 +61,7 @@ jobs:
           GREENGEEKS_FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
           GREENGEEKS_FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
           GREENGEEKS_REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
-          GITHUB_SHA: 8cd03d156b777a92ac13d86c255670b6dd7bd890
+          GITHUB_SHA: e814a9956b777a92ac13d86c255670b6dd7bd890
         run: |
           set -euo pipefail
           cd "$RUNNER_TEMP/harbour-release"
