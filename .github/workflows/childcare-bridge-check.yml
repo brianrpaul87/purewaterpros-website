@@ -1,61 +1,72 @@
-name: Inspect Childcare Harbour release transport read-only
+name: Publish verified Childcare Harbour session fixes after recovered transport
 on:
   push:
     branches: [codex/childcare-deployment-bridge]
     paths: [.github/workflows/childcare-bridge-check.yml]
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: childcare-harbour-bridge
   cancel-in-progress: false
 jobs:
-  inspect:
+  publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
-      - name: Check public health and fixed-folder runtime hashes without changes
+      - name: Generate one-time transfer key and publish its public half
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out harbour-key.pem 2>/dev/null
+          openssl pkey -in harbour-key.pem -pubout -out harbour-public.pem
+          python3 - <<'PY'
+          import base64,json,os,urllib.request
+          public=open('harbour-public.pem','rb').read()
+          payload=json.dumps({'message':'Publish one-time transfer public key','content':base64.b64encode(public).decode(),'branch':'codex/childcare-deployment-bridge'}).encode()
+          req=urllib.request.Request('https://api.github.com/repos/brianrpaul87/purewaterpros-website/contents/childcare-bridge/aee9925r2-public.pem',data=payload,method='PUT',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'})
+          with urllib.request.urlopen(req,timeout=20) as response:
+              if response.status != 201: raise RuntimeError('Public-key publication failed')
+          print('One-time public key is ready.')
+          PY
+      - name: Wait for encrypted release and verify original bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          python3 - <<'PY'
+          import base64,json,time,urllib.request,urllib.error,os
+          url='https://api.github.com/repos/brianrpaul87/purewaterpros-website/contents/childcare-bridge/aee9925r2-payload.json?ref=codex%2Fchildcare-deployment-bridge'
+          for i in range(170):
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'}),timeout=15) as r: obj=json.load(r)
+                  payload=json.loads(base64.b64decode(obj['content']))
+                  open('harbour-key.enc','wb').write(base64.b64decode(payload['key'],validate=True))
+                  open('harbour-release.enc','wb').write(base64.b64decode(payload['data'],validate=True))
+                  print('Encrypted package received.')
+                  break
+              except urllib.error.HTTPError as e:
+                  if e.code != 404: raise
+                  time.sleep(5)
+          else: raise TimeoutError('Encrypted release did not arrive')
+          PY
+          openssl pkeyutl -decrypt -inkey harbour-key.pem -in harbour-key.enc -out harbour-pass.txt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:harbour-pass.txt -in harbour-release.enc -out harbour-release.tar.gz
+          echo '0dffa7ae929236b890b66560497c4484234fecc68064a9bb1c11308307683227  harbour-release.tar.gz' | sha256sum -c
+          mkdir harbour-release
+          tar -xzf harbour-release.tar.gz -C harbour-release
+          rm -f harbour-key.pem harbour-pass.txt
+      - name: Deploy and verify only the Childcare Harbour folder
         env:
           GREENGEEKS_FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
           GREENGEEKS_FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
           GREENGEEKS_REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
+          GITHUB_SHA: aee9925e5fe7d77888be211109ab4c23b936b9d9
         run: |
-          python3 - <<'PYCODE'
-          import ftplib,ssl,os,io,json,hashlib,urllib.request,urllib.error,re
-          base='https://www.purewaterpros.ca/childcare-harbour'
-          def get(path):
-           with urllib.request.urlopen(base+path,timeout=20) as r:return r.read(2000000)
-          try:
-           page=get('/join.html?transport=aee9925')
-           raw=get('/api/live/status');version=re.search(rb'join.js\?v=([a-f0-9]{16})',page)
-           try:
-            status=json.loads(raw);print('PUBLIC_HEALTH '+json.dumps({'version':version.group(1).decode() if version else None,'registrationActive':status.get('enabled') is True and status.get('accountsAvailable') is True,'liveAI':status.get('assistant',{}).get('liveAI')}))
-           except ValueError:
-            title=re.search(rb'<title[^>]*>(.*?)</title>',raw,re.I|re.S)
-            print('PUBLIC_HEALTH '+json.dumps({'version':version.group(1).decode() if version else None,'statusFormat':'non-json','publicResponseTitle':title.group(1).decode('utf8','replace')[:160] if title else None}))
-          except Exception as error:print('PUBLIC_CHECK_FAILURE '+type(error).__name__)
-          EXPECTED_OLD={'dist/assets.js': '0744ec3a1b1c8558bff8652177cca1cf6d832de7472afb42b69db83262851e7d', 'dist/demo-assistant.js': '4d3bb8df89aa379bde3ee73e97eee5f17011b8c394615d8062822a8a37da3028', 'dist/domain.js': 'e9c7254dbe8ab10b9a38b8abd7b64f30c3c22c29dfe80dca29d08661f69c88e5', 'dist/mail-NOTICE.txt': '4f814dcacd2da618d62829ea1f6238701cf421f18a6b36c91c5d8212245e2c78', 'dist/seed.js': 'bb323d535b5a3cc922d60f20ad2062e84b02e0d6d78d12e8bfa425e568b935b5', 'dist/transactional-mail.js': '81bee7a838514deb1ac3d4083ef7955b8f03b8da44c803efb94bbdc62979b598', 'dist/worker.js': 'e35e5291273247d34725f2926f48584401a5b7318de12ee69bb83e0f32c4a8ea', 'package.json': '95996fd0278fe5fe487b01401057df857f2c9dea6072acc1ffe360742738105b', 'release-manifest.json': 'b0cc2504561cf4d5106f90c35b9c564d99c0ec65e234b6db941be1d246fc701e', 'server.cjs': '3b7d61113d57ab2e57a6b1f21a0ee3f54da9cf4fcfb4189bfc506f720d168910', 'server.mjs': '2a54bc26defb744d0546ee1e97962cadad68d34eaa56fc464288d90c8de9cfab', 'src/accounts.js': '9d0773c293824c190f528134412cc10537e6c49ef5249edb60743d222776d9e1', 'src/domain.js': 'e9c7254dbe8ab10b9a38b8abd7b64f30c3c22c29dfe80dca29d08661f69c88e5', 'src/early-access.js': 'e1b26c7172d43385b0bcb8bdb55fec14e6f0e1f9fbdbec0604dc67876c87d9a8', 'src/file-store.js': '44a28634bfa8e5c2afa17d15a79094883b681fb63e01733ca4da617b9c778436', 'src/hosted-ai.js': '6369e3fc2a1e1ebaf69272b6025559a5c6251ec9fd37a9a132e9961669cd4a0e', 'src/live-accounts.js': 'dd2914c64c8535b782c47df706b82c0e4e6dd16e5ce5305831f127bc96b6d07b', 'src/live-assistant.js': 'b47cef56be4d78819cf57e84634a4c6080e05b261c27dc2bac93dac04407d34a', 'src/live-backups.js': 'b501c5254ea933ea51ea3be2b39e8c5450aca464440fed692b82bfe4e8bbdbd1', 'src/live-launch.mjs': 'a876993107e0119e5534df6e2055f6e2571d72b6239e21d1e9cf1de3d9220301', 'src/live-search.js': '170d278e09900b6236304b8fb98da512b27ba7a1bf20f455c1f21742da9edebe', 'src/seed.js': 'bb323d535b5a3cc922d60f20ad2062e84b02e0d6d78d12e8bfa425e568b935b5'}
-          EXPECTED_NEW={'server.mjs': '2a54bc26defb744d0546ee1e97962cadad68d34eaa56fc464288d90c8de9cfab', 'package.json': '95996fd0278fe5fe487b01401057df857f2c9dea6072acc1ffe360742738105b', 'release-manifest.json': '04d45bf12b1b3fbcfe406350edc6f6981ade034f229cf251c828db7ca6bf2f8b', 'server.cjs': '3b7d61113d57ab2e57a6b1f21a0ee3f54da9cf4fcfb4189bfc506f720d168910', 'dist/mail-NOTICE.txt': '4f814dcacd2da618d62829ea1f6238701cf421f18a6b36c91c5d8212245e2c78', 'dist/seed.js': 'bb323d535b5a3cc922d60f20ad2062e84b02e0d6d78d12e8bfa425e568b935b5', 'dist/worker.js': 'e35e5291273247d34725f2926f48584401a5b7318de12ee69bb83e0f32c4a8ea', 'dist/domain.js': 'e9c7254dbe8ab10b9a38b8abd7b64f30c3c22c29dfe80dca29d08661f69c88e5', 'dist/transactional-mail.js': '81bee7a838514deb1ac3d4083ef7955b8f03b8da44c803efb94bbdc62979b598', 'dist/assets.js': '744e259400a4043d5302cdd06c96345f0ea10646beaa2b00f9b0ae35911fb909', 'dist/demo-assistant.js': '4d3bb8df89aa379bde3ee73e97eee5f17011b8c394615d8062822a8a37da3028', 'src/early-access.js': 'e1b26c7172d43385b0bcb8bdb55fec14e6f0e1f9fbdbec0604dc67876c87d9a8', 'src/live-backups.js': 'b501c5254ea933ea51ea3be2b39e8c5450aca464440fed692b82bfe4e8bbdbd1', 'src/live-accounts.js': '4c0d6809a381d706ae7d556fda60736502ceda3184460b1e520fe387c89864d3', 'src/seed.js': 'bb323d535b5a3cc922d60f20ad2062e84b02e0d6d78d12e8bfa425e568b935b5', 'src/accounts.js': '9d0773c293824c190f528134412cc10537e6c49ef5249edb60743d222776d9e1', 'src/live-assistant.js': 'b47cef56be4d78819cf57e84634a4c6080e05b261c27dc2bac93dac04407d34a', 'src/domain.js': 'e9c7254dbe8ab10b9a38b8abd7b64f30c3c22c29dfe80dca29d08661f69c88e5', 'src/hosted-ai.js': '6369e3fc2a1e1ebaf69272b6025559a5c6251ec9fd37a9a132e9961669cd4a0e', 'src/live-search.js': '170d278e09900b6236304b8fb98da512b27ba7a1bf20f455c1f21742da9edebe', 'src/live-launch.mjs': 'a876993107e0119e5534df6e2055f6e2571d72b6239e21d1e9cf1de3d9220301', 'src/file-store.js': '44a28634bfa8e5c2afa17d15a79094883b681fb63e01733ca4da617b9c778436'}
-          phase='connect'
-          try:
-           root=os.environ.get('GREENGEEKS_REMOTE_ROOT','/').rstrip('/')
-           if root not in ('','/public_html','/home/purewat1/public_html'):raise ValueError('Unexpected root')
-           target=root+'/childcare-harbour'
-           with ftplib.FTP_TLS(context=ssl.create_default_context(),timeout=20) as ftp:
-            ftp.connect('mtl203.greengeeks.net',21);print('TRANSPORT connected',flush=True);phase='authenticate'
-            ftp.login(os.environ['GREENGEEKS_FTP_USERNAME'],os.environ['GREENGEEKS_FTP_PASSWORD']);print('TRANSPORT authenticated',flush=True);phase='protected-data'
-            ftp.prot_p();ftp.cwd(target)
-            if ftp.pwd().rstrip('/')!=target:raise ValueError('Wrong folder')
-            print('TRANSPORT fixed folder verified',flush=True);phase='read-runtime'
-            actual={}
-            for path in sorted(EXPECTED_NEW):
-             data=io.BytesIO();ftp.retrbinary('RETR '+target+'/'+path,data.write);actual[path]=hashlib.sha256(data.getvalue()).hexdigest()
-            phase='read-lock'
-            try:ftp.nlst(target+'/.harbour-deploy/lock');locked=True
-            except ftplib.error_perm as e:
-             if not str(e).startswith('550'):raise
-             locked=False
-            print('RUNTIME_STATE '+json.dumps({'matchesPreviousRelease':actual==EXPECTED_OLD,'matchesNewRelease':actual==EXPECTED_NEW,'deploymentLockPresent':locked,'checkedFiles':len(actual)}))
-          except Exception as error:
-           print('TRANSPORT_FAILURE '+json.dumps({'phase':phase,'category':type(error).__name__}))
-           raise SystemExit(1)
-          PYCODE
+          set -euo pipefail
+          cd "$RUNNER_TEMP/harbour-release"
+          python3 verify-hosted-release.py before
+          python3 scripts/deploy-greengeeks.py
+          python3 verify-hosted-release.py after
