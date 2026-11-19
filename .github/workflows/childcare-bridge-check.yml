@@ -1,4 +1,4 @@
-name: Complete approved Childcare Harbour account activation
+name: Audit activated Childcare Harbour accounts read-only
 on:
   push:
     branches: [codex/childcare-deployment-bridge]
@@ -9,16 +9,49 @@ concurrency:
   group: childcare-harbour-bridge
   cancel-in-progress: false
 jobs:
-  activate:
+  inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 5
     steps:
-      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
-        with:
-          persist-credentials: false
-      - name: Activate only the isolated app and verify public signup
+      - name: Read setup flags without exposing configuration values
         env:
           GREENGEEKS_FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
           GREENGEEKS_FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
           GREENGEEKS_REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
-        run: python3 childcare-bridge/activation-tools/complete-live-activation.py
+        run: |
+          python3 - <<'PY'
+          import ftplib,ssl,os,io,json
+          def read(ftp,path):
+              data=io.BytesIO()
+              ftp.retrbinary('RETR '+path,data.write)
+              if len(data.getvalue())>65536: raise ValueError('Unexpected config size')
+              return json.loads(data.getvalue())
+          try:
+              username=os.environ.get('GREENGEEKS_FTP_USERNAME')
+              password=os.environ.get('GREENGEEKS_FTP_PASSWORD')
+              if not username or not password: raise ValueError('Missing connection')
+              root=os.environ.get('GREENGEEKS_REMOTE_ROOT','/').rstrip('/')
+              if root not in ('','/public_html','/home/purewat1/public_html'): raise ValueError('Unexpected FTP root')
+              target=root+'/childcare-harbour'
+              with ftplib.FTP_TLS(context=ssl.create_default_context(),timeout=30) as ftp:
+                  ftp.connect('mtl203.greengeeks.net',21)
+                  ftp.login(username,password);ftp.prot_p();ftp.cwd(target)
+                  if ftp.pwd().rstrip('/')!=target: raise ValueError('Wrong directory')
+                  if read(ftp,'package.json').get('name')!='childcare-harbour': raise ValueError('Wrong app')
+                  config=read(ftp,'harbour-private.json')
+                  policy=config.get('livePolicy') or {}
+                  smtp=config.get('liveSmtp') or {}
+                  result={'configurationPresent':True,'publicOriginConfigured':bool(config.get('publicOrigin')),'basePathConfigured':config.get('basePath')=='/childcare-harbour','liveAccountsEnabled':config.get('liveAccountsEnabled') is True,'livePolicyFields':{key:bool(policy.get(key)) for key in ['controllerName','contactEmail','retentionDays','backupRetentionDays','storageReviewed','backupsReviewed']},'liveMailFields':{key:bool(smtp.get(key)) for key in ['enabled','host','port','from','user','password']},'liveAuthKeyConfigured':bool(config.get('liveAuthSecret')),'liveBackupKeyConfigured':bool(config.get('liveBackupKey'))}
+                  capabilities=read(ftp,'var/live-runtime-capabilities.json')
+                  result['localMailCapability']={key:capabilities.get(key) is True for key in ['sendmailSbin','sendmailLib']}
+                  result['runtimeProbeRecorded']=isinstance(capabilities.get('checkedAt'),str)
+                  result['approvedContactMatches']=policy.get('contactEmail')=='info@purewaterpros.ca'
+                  result['localMailConfigured']=smtp.get('enabled') is True and smtp.get('transport')=='sendmail' and smtp.get('from')=='info@purewaterpros.ca'
+                  evidence=config.get('liveLaunchEvidence') or {}
+                  result['launchEvidence']={key:evidence.get(key) is True for key in ['actualInboxDeliveryConfirmed','hostedSignupEmailQueued','manualCodeEntryRequired','hostedAccountVerificationCompleted','hostedRecoveryAndDeletionCompleted','automaticTestAccountCreated','syntheticBrowserJourneyPassed']}
+                  print('CHILDCARE_SETUP_FLAGS '+json.dumps(result,sort_keys=True))
+                  config.clear();policy.clear();smtp.clear()
+          except Exception:
+              print('Isolated setup inspection failed. No private values were printed.')
+              raise SystemExit(1)
+          PY
