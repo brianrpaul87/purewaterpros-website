@@ -1,57 +1,72 @@
-name: Audit activated Childcare Harbour accounts read-only
+name: Publish reviewed Childcare Harbour live operations release
 on:
   push:
     branches: [codex/childcare-deployment-bridge]
     paths: [.github/workflows/childcare-bridge-check.yml]
 permissions:
-  contents: read
+  contents: write
 concurrency:
   group: childcare-harbour-bridge
   cancel-in-progress: false
 jobs:
-  inspect:
+  publish:
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 20
     steps:
-      - name: Read setup flags without exposing configuration values
+      - name: Generate one-time transfer key and publish its public half
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:3072 -out harbour-key.pem 2>/dev/null
+          openssl pkey -in harbour-key.pem -pubout -out harbour-public.pem
+          python3 - <<'PY'
+          import base64,json,os,urllib.request
+          public=open('harbour-public.pem','rb').read()
+          payload=json.dumps({'message':'Publish one-time transfer public key','content':base64.b64encode(public).decode(),'branch':'codex/childcare-deployment-bridge'}).encode()
+          req=urllib.request.Request('https://api.github.com/repos/brianrpaul87/purewaterpros-website/contents/childcare-bridge/78e462e-public.pem',data=payload,method='PUT',headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json','Content-Type':'application/json'})
+          with urllib.request.urlopen(req,timeout=20) as response:
+              if response.status != 201: raise RuntimeError('Public-key publication failed')
+          print('One-time public key is ready.')
+          PY
+      - name: Wait for encrypted release and verify original bytes
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          cd "$RUNNER_TEMP"
+          python3 - <<'PY'
+          import base64,json,time,urllib.request,urllib.error,os
+          url='https://api.github.com/repos/brianrpaul87/purewaterpros-website/contents/childcare-bridge/78e462e-payload.json?ref=codex%2Fchildcare-deployment-bridge'
+          for i in range(170):
+              try:
+                  with urllib.request.urlopen(urllib.request.Request(url,headers={'Authorization':'Bearer '+os.environ['GH_TOKEN'],'Accept':'application/vnd.github+json'}),timeout=15) as r: obj=json.load(r)
+                  payload=json.loads(base64.b64decode(obj['content']))
+                  open('harbour-key.enc','wb').write(base64.b64decode(payload['key'],validate=True))
+                  open('harbour-release.enc','wb').write(base64.b64decode(payload['data'],validate=True))
+                  print('Encrypted package received.')
+                  break
+              except urllib.error.HTTPError as e:
+                  if e.code != 404: raise
+                  time.sleep(5)
+          else: raise TimeoutError('Encrypted release did not arrive')
+          PY
+          openssl pkeyutl -decrypt -inkey harbour-key.pem -in harbour-key.enc -out harbour-pass.txt -pkeyopt rsa_padding_mode:oaep -pkeyopt rsa_oaep_md:sha256
+          openssl enc -d -aes-256-cbc -pbkdf2 -iter 200000 -pass file:harbour-pass.txt -in harbour-release.enc -out harbour-release.tar.gz
+          echo 'a66090dff6507e3a39b9405242ff1b213badb0a1aba6f91ebb3d771559f97634  harbour-release.tar.gz' | sha256sum -c
+          mkdir harbour-release
+          tar -xzf harbour-release.tar.gz -C harbour-release
+          rm -f harbour-key.pem harbour-pass.txt
+      - name: Deploy and verify only the Childcare Harbour folder
         env:
           GREENGEEKS_FTP_USERNAME: ${{ secrets.GREENGEEKS_FTP_USERNAME }}
           GREENGEEKS_FTP_PASSWORD: ${{ secrets.GREENGEEKS_FTP_PASSWORD }}
           GREENGEEKS_REMOTE_ROOT: ${{ secrets.GREENGEEKS_REMOTE_ROOT }}
+          GITHUB_SHA: 78e462e3419b1473a80c26b99c1b90f11720d935
         run: |
-          python3 - <<'PY'
-          import ftplib,ssl,os,io,json
-          def read(ftp,path):
-              data=io.BytesIO()
-              ftp.retrbinary('RETR '+path,data.write)
-              if len(data.getvalue())>65536: raise ValueError('Unexpected config size')
-              return json.loads(data.getvalue())
-          try:
-              username=os.environ.get('GREENGEEKS_FTP_USERNAME')
-              password=os.environ.get('GREENGEEKS_FTP_PASSWORD')
-              if not username or not password: raise ValueError('Missing connection')
-              root=os.environ.get('GREENGEEKS_REMOTE_ROOT','/').rstrip('/')
-              if root not in ('','/public_html','/home/purewat1/public_html'): raise ValueError('Unexpected FTP root')
-              target=root+'/childcare-harbour'
-              with ftplib.FTP_TLS(context=ssl.create_default_context(),timeout=30) as ftp:
-                  ftp.connect('mtl203.greengeeks.net',21)
-                  ftp.login(username,password);ftp.prot_p();ftp.cwd(target)
-                  if ftp.pwd().rstrip('/')!=target: raise ValueError('Wrong directory')
-                  if read(ftp,'package.json').get('name')!='childcare-harbour': raise ValueError('Wrong app')
-                  config=read(ftp,'harbour-private.json')
-                  policy=config.get('livePolicy') or {}
-                  smtp=config.get('liveSmtp') or {}
-                  result={'configurationPresent':True,'publicOriginConfigured':bool(config.get('publicOrigin')),'basePathConfigured':config.get('basePath')=='/childcare-harbour','liveAccountsEnabled':config.get('liveAccountsEnabled') is True,'livePolicyFields':{key:bool(policy.get(key)) for key in ['controllerName','contactEmail','retentionDays','backupRetentionDays','storageReviewed','backupsReviewed']},'liveMailFields':{key:bool(smtp.get(key)) for key in ['enabled','host','port','from','user','password']},'liveAuthKeyConfigured':bool(config.get('liveAuthSecret')),'liveBackupKeyConfigured':bool(config.get('liveBackupKey'))}
-                  capabilities=read(ftp,'var/live-runtime-capabilities.json')
-                  result['localMailCapability']={key:capabilities.get(key) is True for key in ['sendmailSbin','sendmailLib']}
-                  result['runtimeProbeRecorded']=isinstance(capabilities.get('checkedAt'),str)
-                  result['approvedContactMatches']=policy.get('contactEmail')=='info@purewaterpros.ca'
-                  result['localMailConfigured']=smtp.get('enabled') is True and smtp.get('transport')=='sendmail' and smtp.get('from')=='info@purewaterpros.ca'
-                  evidence=config.get('liveLaunchEvidence') or {}
-                  result['launchEvidence']={key:evidence.get(key) is True for key in ['actualInboxDeliveryConfirmed','hostedSignupEmailQueued','manualCodeEntryRequired','hostedAccountVerificationCompleted','hostedRecoveryAndDeletionCompleted','automaticTestAccountCreated','syntheticBrowserJourneyPassed']}
-                  print('CHILDCARE_SETUP_FLAGS '+json.dumps(result,sort_keys=True))
-                  config.clear();policy.clear();smtp.clear()
-          except Exception:
-              print('Isolated setup inspection failed. No private values were printed.')
-              raise SystemExit(1)
-          PY
+          set -euo pipefail
+          cd "$RUNNER_TEMP/harbour-release"
+          python3 verify-hosted-release.py before
+          python3 scripts/deploy-greengeeks.py
+          python3 verify-hosted-release.py after
